@@ -1,0 +1,268 @@
+<article
+  class="note-card"
+  [class.dragging]="dragging"
+  [class.selected]="selected()"
+  [class.calendar-card]="note().type === 'calendar'"
+  [style.transform]="'translate3d(' + x() + 'px,' + y() + 'px,0)'"
+  [style.width.px]="width()"
+  [style.height.px]="height()"
+  [style.z-index]="note().zIndex"
+  (pointerdown)="startDrag($event)"
+  (pointermove)="drag($event)"
+  (pointerup)="endDrag($event)"
+  (pointercancel)="endDrag($event)"
+  (dblclick)="edit($event)"
+>
+  @if (pin().type !== 'none') {
+    <div class="note-pin-layer" [class.calendar-pin-left]="note().type === 'calendar'">
+      <app-note-pin [pinId]="note().pinId"></app-note-pin>
+    </div>
+  }
+  @if (
+    note().type === 'calendar' && secondaryPin()?.type !== 'none' && note().secondaryPinId;
+    as secondaryPinId
+  ) {
+    <div class="note-pin-layer calendar-pin-right">
+      <app-note-pin [pinId]="secondaryPinId"></app-note-pin>
+    </div>
+  }
+  @if (note().type === 'calendar' && note().calendar) {
+    <div class="calendar-paper">
+      <header class="calendar-top">
+        <div class="calendar-year">
+          <span>{{ note().calendar!.year }}</span>
+          <small>CALENDAR</small>
+        </div>
+        <div class="calendar-heading">
+          <span class="calendar-country">PHILIPPINES</span>
+          <strong>{{ calendarMonthName() }}</strong>
+        </div>
+        <div class="calendar-controls">
+          <button type="button" title="Previous month" (click)="previousCalendarMonth($event)">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <button
+            type="button"
+            class="today-btn"
+            title="Go to today"
+            (click)="goToCalendarToday($event)"
+          >
+            Today
+          </button>
+          <button type="button" title="Next month" (click)="nextCalendarMonth($event)">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </header>
+      <div class="calendar-weekdays">
+        <span class="sunday">SUN</span>
+        <span>MON</span>
+        <span>TUE</span>
+        <span>WED</span>
+        <span>THU</span>
+        <span>FRI</span>
+        <span>SAT</span>
+      </div>
+      <div class="calendar-grid">
+        @for (day of calendarDays(); track $index) {
+          <div
+            class="calendar-day"
+            [class.empty]="day.day === null"
+            [class.sunday]="day.sunday"
+            [class.today]="day.today"
+            [class.holiday]="!!day.holiday"
+            [class.regular-holiday]="day.holiday?.type === 'regular'"
+            [class.special-holiday]="day.holiday?.type === 'special'"
+          >
+            @if (day.day !== null) {
+              <div class="calendar-day-heading">
+                <span class="calendar-date-number">{{ day.day }}</span>
+                @if (day.moonPhase; as moon) {
+                  <span class="calendar-moon-phase" [title]="moon.label">{{ moon.icon }}</span>
+                }
+              </div>
+              <div class="calendar-day-content">
+                @if (day.holiday; as holiday) {
+                  <span class="calendar-holiday" [title]="holiday.name">
+                    <i class="fa-solid fa-flag"></i>
+                    <span>{{ holiday.name }}</span>
+                  </span>
+                }
+                @for (event of getCalendarEvents(day.date); track event.id) {
+                  <span class="calendar-event" [title]="event.title">
+                    <i class="fa-solid fa-circle"></i>
+                    <span>{{ event.title }}</span>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <footer class="calendar-footer">
+        <span>
+          <i class="fa-solid fa-location-dot"></i>
+          Philippine Calendar
+        </span>
+        @if (note().calendar!.showHolidays) {
+          <span>
+            <i class="fa-regular fa-calendar-check"></i>
+            Holidays
+          </span>
+        }
+        @if (note().calendar!.showMoonPhases) {
+          <span>
+            <i class="fa-regular fa-moon"></i>
+            Moon Phases
+          </span>
+        }
+      </footer>
+    </div>
+  } @else {
+    <app-note-design [style]="style()">
+      <div
+        class="note-content"
+        [attr.data-pattern]="style().pattern"
+        [attr.data-decoration]="style().decoration"
+      >
+        <header class="note-header">
+          <div class="note-type">
+            @switch (note().type) {
+              @case ('text') {
+                <i class="fa-regular fa-note-sticky"></i>
+              }
+              @case ('checklist') {
+                <i class="fa-solid fa-list-check"></i>
+              }
+              @case ('idea') {
+                <i class="fa-regular fa-lightbulb"></i>
+              }
+              @case ('reminder') {
+                <i class="fa-regular fa-clock"></i>
+              }
+              @case ('quote') {
+                <i class="fa-solid fa-quote-left"></i>
+              }
+            }
+            <span>{{ note().type }}</span>
+          </div>
+          <div class="note-actions">
+            <button
+              type="button"
+              title="Pin note"
+              [class.active]="note().pinned"
+              (click)="togglePinned($event)"
+            >
+              <i class="fa-solid fa-thumbtack"></i>
+            </button>
+            <button
+              type="button"
+              title="Favorite"
+              [class.active]="note().favorite"
+              (click)="toggleFavorite($event)"
+            >
+              <i [class]="note().favorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
+            </button>
+            <button type="button" title="Edit note" (click)="edit($event)">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button type="button" title="Duplicate note" (click)="duplicate($event)">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+            <button type="button" title="Archive note" (click)="archive($event)">
+              <i class="fa-solid fa-box-archive"></i>
+            </button>
+            <button
+              type="button"
+              class="delete-action"
+              title="Delete note"
+              (click)="delete($event)"
+            >
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>
+        </header>
+        <div class="note-body">
+          @if (note().title) {
+            <h3>{{ note().title }}</h3>
+          }
+          @switch (note().type) {
+            @case ('checklist') {
+              <div class="checklist">
+                @for (item of note().checklistItems; track item.id) {
+                  <button
+                    type="button"
+                    class="checklist-item"
+                    [class.completed]="item.completed"
+                    (click)="toggleChecklist($event, item.id)"
+                  >
+                    <span class="check-box">
+                      @if (item.completed) {
+                        <i class="fa-solid fa-check"></i>
+                      }
+                    </span>
+                    <span>{{ item.text }}</span>
+                  </button>
+                }
+              </div>
+            }
+            @case ('idea') {
+              @if (note().content) {
+                <p>{{ note().content }}</p>
+              }
+              <div class="idea-meta">
+                <span>{{ note().ideaStatus }}</span>
+                <span>{{ note().ideaPriority }}</span>
+              </div>
+            }
+            @case ('reminder') {
+              @if (note().content) {
+                <p>{{ note().content }}</p>
+              }
+              @if (note().reminderAt) {
+                <div class="reminder-time">
+                  <i class="fa-regular fa-clock"></i>
+                  {{ note().reminderAt | date: 'MMM d, y · h:mm a' }}
+                </div>
+              }
+            }
+            @case ('quote') {
+              <blockquote>{{ note().content }}</blockquote>
+              @if (note().quoteAuthor) {
+                <cite>— {{ note().quoteAuthor }}</cite>
+              }
+            }
+            @default {
+              @if (note().content) {
+                <p>{{ note().content }}</p>
+              }
+            }
+          }
+        </div>
+        @if (note().tags.length) {
+          <div class="note-tags">
+            @for (tag of note().tags; track tag) {
+              <span>#{{ tag }}</span>
+            }
+          </div>
+        }
+        <footer class="note-footer">
+          <span>{{ note().updatedAt | date: 'MMM d' }}</span>
+          @if (note().pinned) {
+            <i class="fa-solid fa-thumbtack" title="Pinned"></i>
+          }
+        </footer>
+      </div>
+    </app-note-design>
+  }
+  <div
+    class="resize-handle"
+    title="Resize note"
+    (pointerdown)="startResize($event)"
+    (pointermove)="resize($event)"
+    (pointerup)="endResize($event)"
+    (pointercancel)="endResize($event)"
+  >
+    <i class="fa-solid fa-grip-lines"></i>
+  </div>
+</article>

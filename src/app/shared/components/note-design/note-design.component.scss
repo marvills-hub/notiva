@@ -1,0 +1,458 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.note-design {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--note-border);
+  background: var(--note-bg);
+  color: var(--note-text);
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.22));
+}
+
+.note-design.preview {
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.22));
+}
+
+.note-decoration {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.note-design[data-pattern='lines'] {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 23px,
+      var(--note-line) 23px,
+      var(--note-line) 24px
+    ),
+    var(--note-bg);
+}
+
+.note-design[data-pattern='grid'] {
+  background:
+    linear-gradient(var(--note-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--note-line) 1px, transparent 1px), var(--note-bg);
+  background-size: 22px 22px;
+}
+
+.note-design[data-pattern='dots'] {
+  background: radial-gradient(circle, var(--note-line) 1px, transparent 1.5px), var(--note-bg);
+  background-size: 12px 12px;
+}
+
+.note-design[data-pattern='notebook'] {
+  background:
+    linear-gradient(
+      90deg,
+      transparent 23px,
+      rgba(215, 68, 72, 0.35) 23px,
+      rgba(215, 68, 72, 0.35) 24px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 23px,
+      var(--note-line) 23px,
+      var(--note-line) 24px
+    ),
+    var(--note-bg);
+}
+
+.note-design[data-pattern='terminal'] {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 23px,
+      var(--note-line) 23px,
+      var(--note-line) 24px
+    ),
+    var(--note-bg);
+}
+
+.preview-content {
+  position: absolute;
+  z-index: 10;
+  inset: 25% 18%;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.preview-title,
+.preview-line {
+  display: block;
+  height: 3px;
+  border-radius: 5px;
+  background: var(--note-text);
+}
+
+.preview-title {
+  width: 54%;
+  height: 4px;
+  margin-bottom: 2px;
+  opacity: 0.72;
+}
+
+.preview-line {
+  width: 74%;
+  opacity: 0.32;
+
+  &.long {
+    width: 91%;
+  }
+
+  &.short {
+    width: 55%;
+  }
+}
+
+.note-design[data-decoration='burnt'] {
+  box-shadow:
+    inset 0 0 17px rgba(49, 24, 9, 0.45),
+    inset 0 0 0 2px rgba(66, 35, 15, 0.18);
+}
+
+.note-design[data-decoration='burnt'] .note-decoration {
+  background:
+    radial-gradient(circle at 4% 5%, rgba(55, 25, 10, 0.5), transparent 16%),
+    radial-gradient(circle at 96% 92%, rgba(55, 25, 10, 0.5), transparent 18%);
+}
+
+.note-design[data-decoration='wax'] .note-decoration::after {
+  content: '';
+  position: absolute;
+  right: 12%;
+  bottom: 12%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.25), transparent 20%),
+    var(--note-accent);
+  box-shadow:
+    inset -4px -5px 6px rgba(0, 0, 0, 0.22),
+    0 3px 4px rgba(0, 0, 0, 0.22);
+}
+
+.note-design[data-decoration='curl'] .note-decoration::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(225deg, rgba(0, 0, 0, 0.18) 0 49%, rgba(255, 255, 255, 0.3) 50%);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.note-design[data-decoration='spiral'] .note-decoration::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 10%;
+  right: 10%;
+  height: 12px;
+  background: radial-gradient(circle, #292929 2px, transparent 3px);
+  background-size: 15px 12px;
+}
+
+.note-design[data-decoration='holes'] .note-decoration::before {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 3px;
+  width: 10px;
+  background: radial-gradient(circle, rgba(40, 45, 50, 0.75) 2px, transparent 3px);
+  background-size: 10px 20px;
+}
+
+.note-design[data-decoration='stamp'] .note-decoration::after {
+  content: 'NOTIVA';
+  position: absolute;
+  right: 8%;
+  bottom: 12%;
+  padding: 4px 6px;
+  border: 2px solid var(--note-accent);
+  color: var(--note-accent);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  transform: rotate(-12deg);
+  opacity: 0.55;
+}
+
+.note-design[data-decoration='map'] .note-decoration {
+  background:
+    radial-gradient(
+      circle at 72% 27%,
+      transparent 0 22px,
+      rgba(68, 45, 21, 0.17) 23px 24px,
+      transparent 25px
+    ),
+    linear-gradient(38deg, transparent 43%, rgba(70, 47, 25, 0.14) 44% 45%, transparent 46%);
+}
+
+.note-design[data-decoration='ink'] .note-decoration {
+  background:
+    radial-gradient(circle at 85% 78%, rgba(31, 15, 65, 0.35), transparent 15%),
+    radial-gradient(circle at 11% 20%, rgba(31, 15, 65, 0.22), transparent 11%);
+}
+
+.note-design[data-decoration='paint'] .note-decoration {
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.18) 37%,
+    transparent 54%
+  );
+}
+
+.note-design[data-decoration='flower'] .note-decoration::after {
+  content: '✿';
+  position: absolute;
+  right: 8%;
+  bottom: 7%;
+  color: var(--note-accent);
+  font-size: 34px;
+  opacity: 0.52;
+}
+
+.note-design[data-decoration='leaf'] .note-decoration::after {
+  content: '❧';
+  position: absolute;
+  right: 7%;
+  bottom: 5%;
+  color: var(--note-accent);
+  font-size: 35px;
+  opacity: 0.55;
+}
+
+.note-design[data-decoration='mountain'] .note-decoration::after {
+  content: '';
+  position: absolute;
+  right: -5%;
+  bottom: 0;
+  width: 88%;
+  height: 43%;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(30, 55, 65, 0.28) 51%) 0 0 / 50% 100%,
+    linear-gradient(225deg, transparent 50%, rgba(45, 75, 87, 0.28) 51%) 100% 0 / 57% 100%;
+  background-repeat: no-repeat;
+}
+
+.note-design[data-decoration='wave'] .note-decoration::after {
+  content: '≈≈≈';
+  position: absolute;
+  right: 6%;
+  bottom: 6%;
+  color: var(--note-accent);
+  font-size: 22px;
+  letter-spacing: -2px;
+  opacity: 0.45;
+}
+
+.note-design[data-decoration='stars'] .note-decoration {
+  background:
+    radial-gradient(circle at 14% 20%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 34% 72%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 68% 16%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 84% 45%, #fff 0 1px, transparent 1.5px),
+    radial-gradient(circle at 71% 83%, #fff 0 1px, transparent 1.5px);
+  opacity: 0.65;
+}
+
+.note-design[data-decoration='cat'] .note-decoration::after,
+.note-design[data-decoration='fox'] .note-decoration::after {
+  content: '• ᴥ •';
+  position: absolute;
+  right: 10%;
+  bottom: 6%;
+  color: var(--note-accent);
+  font-size: 10px;
+}
+
+.note-design[data-decoration='dog'] .note-decoration::after {
+  content: '•ᴥ•';
+  position: absolute;
+  right: 10%;
+  bottom: 6%;
+  color: var(--note-accent);
+  font-size: 10px;
+}
+
+.note-design[data-decoration='bunny'] .note-decoration::after {
+  content: '• ᆺ •';
+  position: absolute;
+  right: 10%;
+  bottom: 6%;
+  color: var(--note-accent);
+  font-size: 9px;
+}
+
+.note-design[data-decoration='panda'] .note-decoration::after,
+.note-design[data-decoration='bear'] .note-decoration::after,
+.note-design[data-decoration='koala'] .note-decoration::after {
+  content: '● ᴥ ●';
+  position: absolute;
+  right: 9%;
+  bottom: 6%;
+  color: var(--note-accent);
+  font-size: 9px;
+}
+
+.note-design[data-decoration='frog'] .note-decoration::after {
+  content: '●   ●';
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  color: var(--note-text);
+  font-size: 9px;
+  transform: translateX(-50%);
+}
+
+.note-design[data-decoration='duck'] .note-decoration::after {
+  content: '›';
+  position: absolute;
+  top: 28%;
+  right: 4%;
+  color: var(--note-accent);
+  font-size: 27px;
+  font-weight: 900;
+}
+
+.note-design[data-decoration='penguin'] .note-decoration {
+  box-shadow:
+    inset 22px 0 rgba(15, 25, 35, 0.22),
+    inset -22px 0 rgba(15, 25, 35, 0.22);
+}
+
+.note-design[data-decoration='owl'] .note-decoration::after {
+  content: '◉ ◉';
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  color: var(--note-accent);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.note-design[data-decoration='cake'] .note-decoration::after {
+  content: '• • •';
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  color: var(--note-accent);
+  font-size: 12px;
+  transform: translateX(-50%);
+}
+
+.note-design[data-decoration='boba'] .note-decoration {
+  background:
+    radial-gradient(circle at 30% 86%, #42271d 0 6px, transparent 7px),
+    radial-gradient(circle at 48% 89%, #42271d 0 6px, transparent 7px),
+    radial-gradient(circle at 66% 84%, #42271d 0 6px, transparent 7px);
+}
+
+.note-design[data-decoration='donut'] .note-decoration::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #543326;
+  transform: translate(-50%, -50%);
+}
+
+.note-design[data-decoration='chocolate'] .note-decoration {
+  background:
+    linear-gradient(var(--note-line) 2px, transparent 2px),
+    linear-gradient(90deg, var(--note-line) 2px, transparent 2px);
+  background-size: 25% 25%;
+}
+
+.note-design[data-decoration='cookie'] .note-decoration {
+  background:
+    radial-gradient(circle at 25% 30%, #684326 0 5px, transparent 6px),
+    radial-gradient(circle at 70% 25%, #684326 0 4px, transparent 5px),
+    radial-gradient(circle at 55% 58%, #684326 0 6px, transparent 7px),
+    radial-gradient(circle at 30% 75%, #684326 0 4px, transparent 5px),
+    radial-gradient(circle at 78% 74%, #684326 0 5px, transparent 6px);
+}
+
+.note-design[data-decoration='crystal'] {
+  box-shadow:
+    inset 0 0 30px rgba(255, 255, 255, 0.18),
+    0 0 13px color-mix(in srgb, var(--note-accent) 32%, transparent);
+}
+
+.note-design[data-decoration='book'] {
+  box-shadow:
+    inset 9px 0 rgba(0, 0, 0, 0.22),
+    inset 0 0 0 3px var(--note-border);
+}
+
+.note-design[data-decoration='magic'] {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--note-accent) 40%, transparent))
+    drop-shadow(0 10px 12px rgba(0, 0, 0, 0.25));
+}
+
+.note-design[data-decoration='dragon'] .note-decoration {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 25%),
+    repeating-radial-gradient(
+      circle at 50% 100%,
+      transparent 0 12px,
+      rgba(255, 255, 255, 0.06) 13px 15px
+    );
+}
+
+.note-design[data-decoration='gear'] .note-decoration::after {
+  content: '⚙';
+  position: absolute;
+  right: 6%;
+  bottom: 5%;
+  color: var(--note-accent);
+  font-size: 33px;
+  opacity: 0.45;
+}
+
+.note-design[data-decoration='cyber'] {
+  box-shadow:
+    inset 0 0 17px color-mix(in srgb, var(--note-accent) 28%, transparent),
+    0 0 12px color-mix(in srgb, var(--note-accent) 30%, transparent);
+}
+
+.note-design[data-decoration='pixel'] {
+  image-rendering: pixelated;
+  box-shadow: inset 0 0 0 4px var(--note-border);
+}
+
+.note-design[data-decoration='comic'] {
+  border-width: 4px;
+}
+
+.note-design[data-decoration='comic'] .note-decoration::after {
+  content: '!';
+  position: absolute;
+  right: 8%;
+  bottom: 3%;
+  color: var(--note-accent);
+  font-size: 32px;
+  font-weight: 900;
+  transform: rotate(-10deg);
+}

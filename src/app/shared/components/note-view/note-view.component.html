@@ -1,0 +1,173 @@
+<div class="note-view-backdrop" (mousedown)="closeBackdrop($event)">
+  <div class="note-view-page">
+    <header class="view-toolbar">
+      <div class="view-info">
+        <span class="eyebrow">NOTE VIEW</span>
+
+        <div>
+          <strong>{{ note().title || 'Untitled Note' }}</strong>
+
+          <span>
+            {{ note().type }} · Updated
+            {{ note().updatedAt | date: 'MMM d, y · h:mm a' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="view-actions">
+        <button type="button" title="Edit note" (click)="edit()">
+          <i class="fa-solid fa-pen"></i>
+          <span>Edit</span>
+        </button>
+
+        <button type="button" class="close-btn" title="Close" (click)="closed.emit()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="note-view-content">
+      <article class="viewed-note">
+        @if (pin().type !== 'none') {
+          <div class="note-pin-layer">
+            <app-note-pin [pinId]="note().pinId"></app-note-pin>
+          </div>
+        }
+
+        <app-note-design [style]="style()">
+          <div
+            class="note-content"
+            [attr.data-pattern]="style().pattern"
+            [attr.data-decoration]="style().decoration"
+          >
+            <header class="note-header">
+              <div class="note-type">
+                @switch (note().type) {
+                  @case ('text') {
+                    <i class="fa-regular fa-note-sticky"></i>
+                  }
+
+                  @case ('checklist') {
+                    <i class="fa-solid fa-list-check"></i>
+                  }
+
+                  @case ('idea') {
+                    <i class="fa-regular fa-lightbulb"></i>
+                  }
+
+                  @case ('reminder') {
+                    <i class="fa-regular fa-clock"></i>
+                  }
+
+                  @case ('quote') {
+                    <i class="fa-solid fa-quote-left"></i>
+                  }
+                }
+
+                <span>{{ note().type }}</span>
+              </div>
+
+              <div class="note-state">
+                @if (note().pinned) {
+                  <i class="fa-solid fa-thumbtack" title="Pinned"></i>
+                }
+
+                @if (note().favorite) {
+                  <i class="fa-solid fa-star" title="Favorite"></i>
+                }
+              </div>
+            </header>
+
+            <div class="note-body">
+              @if (note().title) {
+                <h1>{{ note().title }}</h1>
+              }
+
+              @switch (note().type) {
+                @case ('checklist') {
+                  <div class="checklist">
+                    @for (item of note().checklistItems; track item.id) {
+                      <div class="checklist-item" [class.completed]="item.completed">
+                        <span class="check-box">
+                          @if (item.completed) {
+                            <i class="fa-solid fa-check"></i>
+                          }
+                        </span>
+
+                        <span>{{ item.text }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @case ('idea') {
+                  @if (note().content) {
+                    <p>{{ note().content }}</p>
+                  }
+
+                  <div class="idea-meta">
+                    <span>
+                      <i class="fa-regular fa-lightbulb"></i>
+                      {{ note().ideaStatus }}
+                    </span>
+
+                    <span>
+                      <i class="fa-solid fa-flag"></i>
+                      {{ note().ideaPriority }}
+                    </span>
+                  </div>
+                }
+
+                @case ('reminder') {
+                  @if (note().content) {
+                    <p>{{ note().content }}</p>
+                  }
+
+                  @if (note().reminderAt) {
+                    <div class="reminder-time">
+                      <i class="fa-regular fa-clock"></i>
+
+                      <span>
+                        {{ note().reminderAt | date: 'EEEE, MMMM d, y · h:mm a' }}
+                      </span>
+                    </div>
+                  }
+                }
+
+                @case ('quote') {
+                  <blockquote>
+                    {{ note().content }}
+                  </blockquote>
+
+                  @if (note().quoteAuthor) {
+                    <cite> — {{ note().quoteAuthor }} </cite>
+                  }
+                }
+
+                @default {
+                  @if (note().content) {
+                    <p>{{ note().content }}</p>
+                  }
+                }
+              }
+            </div>
+
+            @if (note().tags.length) {
+              <div class="note-tags">
+                @for (tag of note().tags; track tag) {
+                  <span>#{{ tag }}</span>
+                }
+              </div>
+            }
+
+            <footer class="note-footer">
+              <span> Created {{ note().createdAt | date: 'MMM d, y' }} </span>
+
+              <span> Updated {{ note().updatedAt | date: 'MMM d, y' }} </span>
+            </footer>
+          </div>
+        </app-note-design>
+      </article>
+    </div>
+  </div>
+</div>

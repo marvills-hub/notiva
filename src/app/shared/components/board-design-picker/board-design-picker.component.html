@@ -1,0 +1,67 @@
+<div class="picker-backdrop" (click)="close()">
+  <section class="board-design-picker" (click)="$event.stopPropagation()">
+    <header class="picker-header">
+      <div>
+        <span>BOARD APPEARANCE</span>
+        <h2>Choose Board Design</h2>
+        <p>Pick the surface that fits this board.</p>
+      </div>
+
+      <button type="button" class="close-btn" (click)="close()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </header>
+
+    <div class="category-tabs">
+      @for (item of categories; track item.value) {
+        <button
+          type="button"
+          [class.active]="category() === item.value"
+          (click)="category.set(item.value)"
+        >
+          <i [class]="item.icon"></i>
+          {{ item.label }}
+        </button>
+      }
+    </div>
+
+    <div class="design-grid">
+      @for (design of designs(); track design.id) {
+        <button
+          type="button"
+          class="design-card"
+          [class.active]="currentDesignId() === design.id"
+          (click)="selectDesign(design.id)"
+        >
+          <div class="design-preview">
+            <app-board-surface [design]="design" [preview]="true"></app-board-surface>
+
+            @if (currentDesignId() === design.id) {
+              <span class="selected-check">
+                <i class="fa-solid fa-check"></i>
+              </span>
+            }
+          </div>
+
+          <div class="design-info">
+            <strong>{{ design.name }}</strong>
+            <span>{{ design.category }}</span>
+          </div>
+        </button>
+      }
+    </div>
+
+    <footer class="picker-footer">
+      <span>{{ designs().length }} board designs</span>
+
+      <div>
+        <button type="button" class="cancel-btn" (click)="close()">Cancel</button>
+
+        <button type="button" class="apply-btn" (click)="apply()">
+          <i class="fa-solid fa-check"></i>
+          Apply Design
+        </button>
+      </div>
+    </footer>
+  </section>
+</div>

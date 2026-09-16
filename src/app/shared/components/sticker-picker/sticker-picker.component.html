@@ -1,0 +1,131 @@
+<div class="sticker-picker-backdrop" (mousedown)="backdropClick($event)">
+  <section
+    class="sticker-picker-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Stickers and emoji"
+  >
+    <header class="picker-header">
+      <div class="picker-title">
+        <div class="picker-icon">
+          <i class="fa-regular fa-face-smile"></i>
+        </div>
+        <div>
+          <span>DRAWING BOARD</span>
+          <h2>Stickers & Emoji</h2>
+        </div>
+      </div>
+      <div class="picker-header-actions">
+        <div class="picker-search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="text"
+            placeholder="Search stickers, emoji and symbols..."
+            [value]="searchQuery()"
+            (input)="updateSearch($event)"
+          />
+          @if (searchQuery()) {
+            <button type="button" title="Clear search" (click)="clearSearch()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          }
+        </div>
+        <button class="picker-close" type="button" title="Close" (click)="close()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </header>
+    <div class="picker-categories">
+      @for (category of categories; track category.id) {
+        <button
+          type="button"
+          [class.active]="activeCategory() === category.id"
+          (click)="setCategory(category.id)"
+        >
+          <i [class]="category.icon"></i>
+          <span>{{ category.name }}</span>
+        </button>
+      }
+    </div>
+    <div class="picker-content">
+      @if (activeCategory() === 'all' && !searchQuery() && recommendedStickers().length) {
+        <section class="recommended-section">
+          <div class="section-heading">
+            <div>
+              <span>FOR THIS BOARD</span>
+              <strong>Recommended</strong>
+            </div>
+            <small>{{ recommendedStickers().length }} items</small>
+          </div>
+          <div class="recommended-grid">
+            @for (sticker of recommendedStickers(); track sticker.id) {
+              <button
+                class="sticker-item recommended"
+                type="button"
+                [title]="sticker.name"
+                (click)="selectSticker(sticker)"
+              >
+                <span
+                  class="sticker-preview"
+                  [class.label-sticker]="sticker.category === 'labels'"
+                  [class.tape-sticker]="sticker.category === 'tape'"
+                  >{{ sticker.value }}</span
+                >
+                <span class="sticker-name">{{ sticker.name }}</span>
+              </button>
+            }
+          </div>
+        </section>
+      }
+      <section class="library-section">
+        <div class="section-heading">
+          <div>
+            <span>LIBRARY</span>
+            <strong>{{
+              activeCategory() === 'all' ? 'All Stickers' : 'Browse ' + activeCategory()
+            }}</strong>
+          </div>
+          <small>{{ resultCount() }} items</small>
+        </div>
+        @if (filteredStickers().length) {
+          <div class="sticker-grid">
+            @for (sticker of filteredStickers(); track sticker.id) {
+              <button
+                class="sticker-item"
+                type="button"
+                [title]="sticker.name"
+                (click)="selectSticker(sticker)"
+              >
+                <span
+                  class="sticker-preview"
+                  [class.label-sticker]="sticker.category === 'labels'"
+                  [class.tape-sticker]="sticker.category === 'tape'"
+                  >{{ sticker.value }}</span
+                >
+                <span class="sticker-name">{{ sticker.name }}</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="picker-empty">
+            <div>
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <strong>No stickers found</strong>
+            <span>Try another search or category.</span>
+            @if (searchQuery()) {
+              <button type="button" (click)="clearSearch()">Clear search</button>
+            }
+          </div>
+        }
+      </section>
+    </div>
+    <footer class="picker-footer">
+      <div>
+        <i class="fa-solid fa-circle-info"></i>
+        <span>Select an item to add it to your drawing board.</span>
+      </div>
+      <span>{{ resultCount() }} available</span>
+    </footer>
+  </section>
+</div>

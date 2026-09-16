@@ -1,0 +1,84 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+    function isImage() {
+      return request.resource != null
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('image/.*');
+    }
+    function isPdf() {
+      return request.resource != null
+        && request.resource.contentType == 'application/pdf';
+    }
+    function isText() {
+      return request.resource != null
+        && request.resource.contentType != null
+        && request.resource.contentType.matches('text/.*');
+    }
+    function isAllowedAttachment() {
+      return isImage()
+        || isPdf()
+        || isText()
+        || request.resource.contentType == 'application/msword'
+        || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        || request.resource.contentType == 'application/vnd.ms-excel'
+        || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        || request.resource.contentType == 'application/vnd.ms-powerpoint'
+        || request.resource.contentType == 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    }
+    function under10MB() {
+      return request.resource != null
+        && request.resource.size <= 10 * 1024 * 1024;
+    }
+    match /users/{userId}/avatars/{fileName} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && request.resource.size <= 5 * 1024 * 1024;
+      allow delete: if isOwner(userId);
+    }
+    match /users/{userId}/boards/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isAllowedAttachment()
+        && under10MB();
+      allow delete: if isOwner(userId);
+    }
+    match /users/{userId}/notes/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isAllowedAttachment()
+        && under10MB();
+      allow delete: if isOwner(userId);
+    }
+    match /users/{userId}/drawings/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isImage()
+        && under10MB();
+      allow delete: if isOwner(userId);
+    }
+    match /users/{userId}/attachments/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isAllowedAttachment()
+        && under10MB();
+      allow delete: if isOwner(userId);
+    }
+    match /users/{userId}/exports/{allPaths=**} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && under10MB();
+      allow delete: if isOwner(userId);
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

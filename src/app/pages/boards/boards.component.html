@@ -1,0 +1,252 @@
+<section class="boards-page">
+  <div class="boards-toolbar">
+    <div class="board-filters">
+      <button type="button" [class.active]="filter() === 'all'" (click)="filter.set('all')">
+        <i class="fa-solid fa-layer-group"></i>
+        <span>All Boards</span>
+      </button>
+      <button
+        type="button"
+        [class.active]="filter() === 'favorites'"
+        (click)="filter.set('favorites')"
+      >
+        <i class="fa-regular fa-star"></i>
+        <span>Favorites</span>
+      </button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="board-stats">
+      <div title="Total boards">
+        <i class="fa-solid fa-border-all"></i>
+        <strong>{{ boardService.boards().length }}</strong>
+        <span>Boards</span>
+      </div>
+      <div title="Total notes">
+        <i class="fa-regular fa-note-sticky"></i>
+        <strong>{{ totalNotes() }}</strong>
+        <span>Notes</span>
+      </div>
+      <div title="Favorite boards">
+        <i class="fa-regular fa-star"></i>
+        <strong>{{ favoriteCount() }}</strong>
+        <span>Favorites</span>
+      </div>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="board-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="Search boards..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+      @if (searchQuery()) {
+        <button type="button" title="Clear search" (click)="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+    </div>
+    <div class="toolbar-divider"></div>
+    <button type="button" class="create-btn" (click)="openCreateBoard()">
+      <i class="fa-solid fa-plus"></i>
+      <span>New Board</span>
+    </button>
+  </div>
+  <div class="boards-content">
+    @if (filteredBoards().length) {
+      <div class="boards-grid">
+        @for (board of filteredBoards(); track board.id) {
+          <app-board-card
+            [board]="board"
+            [noteCount]="getNoteCount(board.id)"
+            (opened)="openBoard($event)"
+            (favoriteClicked)="toggleFavorite($event)"
+            (editClicked)="openEditBoard($event)"
+            (duplicateClicked)="duplicateBoard($event)"
+            (deleteClicked)="requestDelete($event)"
+          ></app-board-card>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">
+          @if (searchQuery()) {
+            <i class="fa-solid fa-magnifying-glass"></i>
+          } @else if (filter() === 'favorites') {
+            <i class="fa-regular fa-star"></i>
+          } @else {
+            <i class="fa-solid fa-border-all"></i>
+          }
+        </div>
+        @if (searchQuery()) {
+          <strong>No matching boards</strong>
+          <span>Try another search term.</span>
+          <button type="button" (click)="clearSearch()">Clear Search</button>
+        } @else if (filter() === 'favorites') {
+          <strong>No favorite boards</strong>
+          <span>Star boards you want to access quickly.</span>
+          <button type="button" (click)="filter.set('all')">View All Boards</button>
+        } @else {
+          <strong>Create your first board</strong>
+          <span>Choose a surface and start pinning notes.</span>
+          <button type="button" (click)="openCreateBoard()">
+            <i class="fa-solid fa-plus"></i>
+            New Board
+          </button>
+        }
+      </div>
+    }
+  </div>
+</section>
+@if (editorOpen()) {
+  <div class="modal-backdrop" (click)="closeEditor()">
+    <section class="board-editor" (click)="$event.stopPropagation()">
+      <header class="editor-header">
+        <div>
+          <span class="eyebrow">
+            {{ editingBoard() ? 'EDIT BOARD' : 'NEW BOARD' }}
+          </span>
+          <h2>
+            {{ editingBoard() ? 'Board Settings' : 'Create Board' }}
+          </h2>
+        </div>
+        <button type="button" class="close-btn" (click)="closeEditor()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+      <div class="editor-body">
+        <div class="board-form">
+          <div class="field">
+            <label>Board Name</label>
+            <input
+              type="text"
+              maxlength="80"
+              placeholder="e.g. Project Ideas"
+              [value]="boardName()"
+              (input)="boardName.set($any($event.target).value)"
+            />
+          </div>
+          <div class="field">
+            <label>Description</label>
+            <textarea
+              maxlength="240"
+              placeholder="What will you keep on this board?"
+              [value]="boardDescription()"
+              (input)="boardDescription.set($any($event.target).value)"
+            ></textarea>
+            <span class="field-hint">{{ boardDescription().length }}/240</span>
+          </div>
+          <div class="field">
+            <label>Board Accent</label>
+            <div class="color-options">
+              @for (item of boardColors; track item.value) {
+                <button
+                  type="button"
+                  [class.active]="boardColor() === item.value"
+                  [style.--color]="item.color"
+                  [title]="item.value"
+                  (click)="selectColor(item.value)"
+                >
+                  <span></span>
+                  @if (boardColor() === item.value) {
+                    <i class="fa-solid fa-check"></i>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+          <div class="selected-design-info">
+            <span>SELECTED SURFACE</span>
+            <strong>{{ selectedDesign().name }}</strong>
+            <small>{{ selectedDesign().category }}</small>
+          </div>
+        </div>
+        <div class="design-panel">
+          <div class="design-preview-large">
+            <app-board-surface [design]="selectedDesign()" [preview]="true"></app-board-surface>
+            <div class="preview-label">
+              <span>LIVE PREVIEW</span>
+              <strong>{{ boardName().trim() || 'Untitled Board' }}</strong>
+            </div>
+          </div>
+          <div class="design-section-header">
+            <div>
+              <span class="eyebrow">SURFACE</span>
+              <h3>Board Design</h3>
+            </div>
+            <span>{{ designs().length }} options</span>
+          </div>
+          <div class="design-categories">
+            @for (category of designCategories; track category.value) {
+              <button
+                type="button"
+                [class.active]="designCategory() === category.value"
+                (click)="setDesignCategory(category.value)"
+              >
+                <i [class]="category.icon"></i>
+                {{ category.label }}
+              </button>
+            }
+          </div>
+          <div class="design-grid">
+            @for (design of designs(); track design.id) {
+              <button
+                type="button"
+                class="design-option"
+                [class.active]="selectedDesignId() === design.id"
+                (click)="selectDesign(design.id)"
+              >
+                <div class="design-option-preview">
+                  <app-board-surface [design]="design" [preview]="true"></app-board-surface>
+                  @if (selectedDesignId() === design.id) {
+                    <span class="selected-check">
+                      <i class="fa-solid fa-check"></i>
+                    </span>
+                  }
+                </div>
+                <div>
+                  <strong>{{ design.name }}</strong>
+                  <span>{{ design.category }}</span>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+      <footer class="editor-footer">
+        <button type="button" class="cancel-btn" (click)="closeEditor()">Cancel</button>
+        <button
+          type="button"
+          class="save-btn"
+          [disabled]="!boardName().trim()"
+          (click)="saveBoard()"
+        >
+          <i [class]="editingBoard() ? 'fa-solid fa-check' : 'fa-solid fa-plus'"></i>
+          {{ editingBoard() ? 'Save Changes' : 'Create Board' }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+@if (deleteTarget()) {
+  <div class="modal-backdrop confirmation-backdrop" (click)="cancelDelete()">
+    <section class="confirmation-dialog" (click)="$event.stopPropagation()">
+      <div class="danger-icon">
+        <i class="fa-regular fa-trash-can"></i>
+      </div>
+      <h3>Delete Board?</h3>
+      <p>
+        <strong>{{ deleteTarget()!.name }}</strong>
+        and all notes inside this board will be permanently deleted.
+      </p>
+      <div class="confirmation-actions">
+        <button type="button" class="cancel-btn" (click)="cancelDelete()">Cancel</button>
+        <button type="button" class="delete-btn" (click)="confirmDelete()">
+          <i class="fa-regular fa-trash-can"></i>
+          Delete Board
+        </button>
+      </div>
+    </section>
+  </div>
+}

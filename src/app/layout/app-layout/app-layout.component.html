@@ -1,0 +1,22 @@
+<div class="app-shell">
+  <div class="app-workspace">
+    <app-sidebar [collapsed]="sidebarCollapsed()"></app-sidebar>
+    <div class="app-main">
+      <app-topbar
+        [sidebarCollapsed]="sidebarCollapsed()"
+        (sidebarToggle)="toggleSidebar()"
+      ></app-topbar>
+      <main class="app-content">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+  <footer class="app-footer">
+    <span>Developed by</span>
+    <a href="https://marvills.web.app/" target="_blank" rel="noopener noreferrer">
+      <span>Marvills</span>
+      <i class="fa-solid fa-arrow-up-right-from-square"></i>
+    </a>
+    <span> | @ MARVILLS MANAGER</span>
+  </footer>
+</div>

@@ -1,0 +1,192 @@
+<header class="topbar">
+  <div class="topbar-left">
+    <button
+      type="button"
+      class="sidebar-toggle"
+      [title]="sidebarCollapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
+      (click)="toggleSidebar()"
+    >
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="topbar-divider"></div>
+    @if (showingBoardIdentity()) {
+      <div class="page-identity board-identity">
+        <div class="board-design-dot" [style.background]="currentBoardDesign().accentColor"></div>
+        <div class="identity-copy">
+          <strong>{{ currentBoard()?.name || 'My Notes' }}</strong>
+          <span
+            >{{ currentBoardNoteCount() }} {{ currentBoardNoteCount() === 1 ? 'note' : 'notes' }} ·
+            {{ currentBoardDesign().name }}</span
+          >
+        </div>
+      </div>
+    } @else {
+      <div class="page-identity">
+        <div class="page-icon">
+          <i [class]="pageIdentity().icon"></i>
+        </div>
+        <div class="identity-copy">
+          <strong>{{ pageIdentity().title }}</strong>
+          <span>{{ pageIdentity().subtitle }}</span>
+        </div>
+      </div>
+    }
+  </div>
+  <div class="topbar-center">
+    <div class="global-search">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input
+          type="text"
+          placeholder="Search all notes..."
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (focus)="focused.set(true)"
+          (blur)="hideResults()"
+        />
+        @if (!search()) {
+          <span class="shortcut">Ctrl K</span>
+        }
+        @if (search()) {
+          <button
+            type="button"
+            class="clear-search"
+            title="Clear search"
+            (mousedown)="$event.preventDefault()"
+            (click)="search.set('')"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        }
+      </div>
+      @if (focused() && search().trim()) {
+        <div class="search-results">
+          @if (results().length) {
+            @for (note of results(); track note.id) {
+              <button
+                type="button"
+                class="search-result"
+                (mousedown)="$event.preventDefault()"
+                (click)="openResult(note)"
+              >
+                <div class="result-icon">
+                  @switch (note.type) {
+                    @case ('text') {
+                      <i class="fa-regular fa-note-sticky"></i>
+                    }
+                    @case ('checklist') {
+                      <i class="fa-solid fa-list-check"></i>
+                    }
+                    @case ('idea') {
+                      <i class="fa-regular fa-lightbulb"></i>
+                    }
+                    @case ('reminder') {
+                      <i class="fa-regular fa-clock"></i>
+                    }
+                    @case ('quote') {
+                      <i class="fa-solid fa-quote-left"></i>
+                    }
+                  }
+                </div>
+                <div class="result-content">
+                  <strong>{{ note.title }}</strong>
+                  <span>{{ getBoardName(note.boardId) }} · {{ note.type }}</span>
+                </div>
+                <i class="fa-solid fa-arrow-right result-arrow"></i>
+              </button>
+            }
+          } @else {
+            <div class="no-results">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <span>No notes found</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" type="button" title="Notifications">
+      <i class="fa-regular fa-bell"></i>
+    </button>
+    <button class="new-note-btn" type="button" (click)="newNote()">
+      <i class="fa-solid fa-plus"></i>
+      <span>New Note</span>
+    </button>
+    <div class="profile-wrap" (click)="$event.stopPropagation()">
+      <button
+        class="profile-btn"
+        type="button"
+        title="Account"
+        [class.active]="profileMenuOpen()"
+        (click)="toggleProfileMenu($event)"
+      >
+        <div class="avatar">
+          @if (userPhotoURL()) {
+            <img [src]="userPhotoURL()" [alt]="userDisplayName()" />
+          } @else {
+            <span>{{ userInitials() }}</span>
+          }
+        </div>
+        <div class="profile-copy">
+          <strong>{{ userDisplayName() }}</strong>
+          <span>{{ authService.email() }}</span>
+        </div>
+        <i class="fa-solid fa-chevron-down profile-chevron" [class.open]="profileMenuOpen()"></i>
+      </button>
+      @if (profileMenuOpen()) {
+        <div class="profile-menu">
+          <div class="profile-menu-header">
+            <div class="menu-avatar">
+              @if (userPhotoURL()) {
+                <img [src]="userPhotoURL()" [alt]="userDisplayName()" />
+              } @else {
+                <span>{{ userInitials() }}</span>
+              }
+            </div>
+            <div class="profile-menu-user">
+              <strong>{{ userDisplayName() }}</strong>
+              <span>{{ authService.email() }}</span>
+            </div>
+          </div>
+          <div class="profile-menu-divider"></div>
+          <button type="button" class="profile-menu-item" (click)="openAccount()">
+            <div class="menu-item-icon">
+              <i class="fa-regular fa-user"></i>
+            </div>
+            <div>
+              <strong>Account</strong>
+              <span>Profile and account details</span>
+            </div>
+            <i class="fa-solid fa-chevron-right item-arrow"></i>
+          </button>
+          <button type="button" class="profile-menu-item" (click)="openSettings()">
+            <div class="menu-item-icon">
+              <i class="fa-solid fa-gear"></i>
+            </div>
+            <div>
+              <strong>Settings</strong>
+              <span>Notiva preferences</span>
+            </div>
+            <i class="fa-solid fa-chevron-right item-arrow"></i>
+          </button>
+          <div class="profile-menu-divider"></div>
+          <button
+            type="button"
+            class="profile-menu-item danger"
+            [disabled]="signingOut()"
+            (click)="logout()"
+          >
+            <div class="menu-item-icon">
+              <i class="fa-solid fa-arrow-right-from-bracket"></i>
+            </div>
+            <div>
+              <strong>{{ signingOut() ? 'Signing out...' : 'Sign Out' }}</strong>
+              <span>Leave your Notiva account</span>
+            </div>
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</header>

@@ -1,0 +1,209 @@
+<div class="auth-page">
+  <div class="auth-decoration decoration-one"></div>
+  <div class="auth-decoration decoration-two"></div>
+  <section class="auth-shell">
+    <div class="auth-brand-panel">
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="assets/images/notiva-logo.png" alt="Notiva" />
+        </div>
+        <div class="brand-copy">
+          <strong>Notiva</strong>
+          <span>Visual Notes & Idea Workspace</span>
+        </div>
+      </div>
+      <div class="brand-content">
+        <span class="brand-eyebrow">Your ideas, visually organized</span>
+        <h1>Give every idea a place to grow.</h1>
+        <p>
+          Create boards, pin notes, sketch ideas and organize everything inside one visual
+          workspace.
+        </p>
+        <div class="feature-list">
+          <div class="feature">
+            <div class="feature-icon">
+              <i class="fa-solid fa-note-sticky"></i>
+            </div>
+            <div>
+              <strong>Visual notes</strong>
+              <span>Arrange thoughts naturally across your boards.</span>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <i class="fa-solid fa-pen-ruler"></i>
+            </div>
+            <div>
+              <strong>Drawing boards</strong>
+              <span>Sketch, annotate and capture ideas freely.</span>
+            </div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">
+              <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+              <strong>Everything together</strong>
+              <span>Keep notes, boards and drawings in one place.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="brand-footer">
+        <span>Notiva</span>
+        <span class="dot"></span>
+        <span>Think visually</span>
+      </div>
+    </div>
+    <div class="auth-form-panel">
+      <div class="auth-form-wrap">
+        <div class="mobile-brand">
+          <img src="assets/images/notiva-logo.png" alt="Notiva" />
+          <strong>Notiva</strong>
+        </div>
+        <div class="auth-heading">
+          <span class="eyebrow">{{ isRegister() ? 'Create your workspace' : 'Welcome back' }}</span>
+          <h2>{{ isRegister() ? 'Create your account' : 'Sign in to Notiva' }}</h2>
+          <p>
+            {{
+              isRegister()
+                ? 'Start collecting and organizing your ideas.'
+                : 'Continue where you left off.'
+            }}
+          </p>
+        </div>
+        <div class="auth-tabs">
+          <button type="button" [class.active]="mode() === 'login'" (click)="setMode('login')">
+            Sign in
+          </button>
+          <button
+            type="button"
+            [class.active]="mode() === 'register'"
+            (click)="setMode('register')"
+          >
+            Create account
+          </button>
+        </div>
+        @if (error()) {
+          <div class="auth-alert error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            <span>{{ error() }}</span>
+          </div>
+        }
+        @if (message()) {
+          <div class="auth-alert success">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>{{ message() }}</span>
+          </div>
+        }
+        <form (ngSubmit)="submit()">
+          @if (isRegister()) {
+            <label class="field">
+              <span>Name</span>
+              <div class="input-wrap">
+                <i class="fa-regular fa-user"></i>
+                <input
+                  type="text"
+                  autocomplete="name"
+                  placeholder="Your name"
+                  [value]="name()"
+                  (input)="updateName($any($event.target).value)"
+                />
+              </div>
+            </label>
+          }
+          <label class="field">
+            <span>Email address</span>
+            <div class="input-wrap">
+              <i class="fa-regular fa-envelope"></i>
+              <input
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                [value]="email()"
+                (input)="updateEmail($any($event.target).value)"
+              />
+            </div>
+          </label>
+          <label class="field">
+            <div class="field-label">
+              <span>Password</span>
+              @if (!isRegister()) {
+                <button type="button" class="forgot" (click)="forgotPassword()">
+                  Forgot password?
+                </button>
+              }
+            </div>
+            <div class="input-wrap">
+              <i class="fa-solid fa-lock"></i>
+              <input
+                [type]="showPassword() ? 'text' : 'password'"
+                [autocomplete]="isRegister() ? 'new-password' : 'current-password'"
+                placeholder="Enter your password"
+                [value]="password()"
+                (input)="updatePassword($any($event.target).value)"
+              />
+              <button type="button" class="visibility" (click)="togglePassword()">
+                <i [class]="showPassword() ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'"></i>
+              </button>
+            </div>
+          </label>
+          @if (isRegister()) {
+            <label class="field">
+              <span>Confirm password</span>
+              <div class="input-wrap">
+                <i class="fa-solid fa-lock"></i>
+                <input
+                  [type]="showConfirmPassword() ? 'text' : 'password'"
+                  autocomplete="new-password"
+                  placeholder="Repeat your password"
+                  [value]="confirmPassword()"
+                  (input)="updateConfirmPassword($any($event.target).value)"
+                />
+                <button type="button" class="visibility" (click)="toggleConfirmPassword()">
+                  <i
+                    [class]="
+                      showConfirmPassword() ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'
+                    "
+                  ></i>
+                </button>
+              </div>
+            </label>
+          }
+          <button class="primary-button" type="submit" [disabled]="loading() || googleLoading()">
+            @if (loading()) {
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              <span>{{ isRegister() ? 'Creating account...' : 'Signing in...' }}</span>
+            } @else {
+              <span>{{ isRegister() ? 'Create account' : 'Sign in' }}</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            }
+          </button>
+        </form>
+        <div class="divider">
+          <span>or continue with</span>
+        </div>
+        <button
+          type="button"
+          class="google-button"
+          [disabled]="loading() || googleLoading()"
+          (click)="loginWithGoogle()"
+        >
+          @if (googleLoading()) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span>Connecting...</span>
+          } @else {
+            <span class="google-mark">G</span>
+            <span>Continue with Google</span>
+          }
+        </button>
+        <p class="auth-switch">
+          {{ isRegister() ? 'Already have an account?' : "Don't have an account?" }}
+          <button type="button" (click)="setMode(isRegister() ? 'login' : 'register')">
+            {{ isRegister() ? 'Sign in' : 'Create one' }}
+          </button>
+        </p>
+      </div>
+    </div>
+  </section>
+</div>

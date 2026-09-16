@@ -1,0 +1,255 @@
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.board-surface {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+.surface-base,
+.surface-overlay,
+.surface-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.surface-base {
+  z-index: 0;
+  background: var(--board-background);
+  background-size: var(--board-background-size);
+  background-position: var(--board-background-position);
+}
+.surface-overlay {
+  z-index: 1;
+  background: var(--board-overlay);
+}
+.surface-vignette {
+  z-index: 3;
+  box-shadow: inset 0 0 100px var(--board-vignette);
+}
+.board-surface::before,
+.board-surface::after {
+  position: absolute;
+  content: '';
+  inset: 0;
+  pointer-events: none;
+}
+.board-surface::before {
+  z-index: 2;
+  opacity: 0.28;
+}
+.board-surface::after {
+  z-index: 2;
+  opacity: 0.2;
+}
+.board-surface[data-design='classic-cork']::before,
+.board-surface[data-design='dark-cork']::before {
+  background:
+    radial-gradient(
+      ellipse at 18% 26%,
+      color-mix(in srgb, var(--wood-dark) 24%, transparent) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      ellipse at 62% 18%,
+      color-mix(in srgb, var(--cream) 12%, transparent) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      ellipse at 78% 71%,
+      color-mix(in srgb, var(--wood-dark) 20%, transparent) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      ellipse at 37% 82%,
+      color-mix(in srgb, var(--cream) 7%, transparent) 0 1px,
+      transparent 2px
+    );
+  background-size:
+    19px 17px,
+    31px 27px,
+    23px 29px,
+    37px 33px;
+}
+.board-surface[data-design='classic-cork']::after,
+.board-surface[data-design='dark-cork']::after {
+  background: repeating-linear-gradient(
+    13deg,
+    transparent 0 13px,
+    color-mix(in srgb, var(--wood-dark) 7%, transparent) 14px,
+    transparent 15px 31px
+  );
+}
+.board-surface[data-design='walnut-wood']::before,
+.board-surface[data-design='light-oak']::before {
+  background:
+    repeating-linear-gradient(
+      92deg,
+      transparent 0 50px,
+      color-mix(in srgb, var(--wood-dark) 15%, transparent) 51px,
+      transparent 53px 92px
+    ),
+    repeating-linear-gradient(
+      88deg,
+      color-mix(in srgb, var(--cream) 4%, transparent) 0,
+      color-mix(in srgb, var(--cream) 4%, transparent) 1px,
+      transparent 1px,
+      transparent 17px
+    );
+}
+.board-surface[data-design='walnut-wood']::after,
+.board-surface[data-design='light-oak']::after {
+  background: repeating-radial-gradient(
+    ellipse at 50% 50%,
+    transparent 0 28px,
+    color-mix(in srgb, var(--wood-dark) 11%, transparent) 29px 30px,
+    transparent 31px 64px
+  );
+  opacity: 0.3;
+  mix-blend-mode: soft-light;
+}
+.board-surface[data-design='warm-linen']::before,
+.board-surface[data-design='forest-felt']::before,
+.board-surface[data-design='charcoal-felt']::before,
+.board-surface[data-design='artist-canvas']::before {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--cream) 5%, transparent) 0,
+      color-mix(in srgb, var(--cream) 5%, transparent) 1px,
+      transparent 1px,
+      transparent 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--wood-dark) 7%, transparent) 0,
+      color-mix(in srgb, var(--wood-dark) 7%, transparent) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+}
+.board-surface[data-design='warm-linen']::after,
+.board-surface[data-design='artist-canvas']::after {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent 0 8px,
+    color-mix(in srgb, var(--cream) 4%, transparent) 9px,
+    transparent 10px 18px
+  );
+}
+.board-surface[data-design='forest-felt']::after,
+.board-surface[data-design='charcoal-felt']::after {
+  background:
+    radial-gradient(
+      circle at 25% 35%,
+      color-mix(in srgb, var(--cream) 3%, transparent) 0 1px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 72% 65%,
+      color-mix(in srgb, var(--wood-dark) 10%, transparent) 0 1px,
+      transparent 2px
+    );
+  background-size:
+    11px 13px,
+    17px 15px;
+}
+.board-surface[data-design='chalkboard']::before {
+  background:
+    linear-gradient(
+      15deg,
+      transparent 48%,
+      color-mix(in srgb, var(--cream) 3%, transparent) 50%,
+      transparent 52%
+    ),
+    linear-gradient(
+      -20deg,
+      transparent 48%,
+      color-mix(in srgb, var(--cream) 2%, transparent) 50%,
+      transparent 52%
+    );
+  background-size:
+    85px 85px,
+    110px 110px;
+}
+.board-surface[data-design='chalkboard']::after {
+  background:
+    radial-gradient(
+      ellipse at 22% 31%,
+      color-mix(in srgb, var(--cream) 4%, transparent),
+      transparent 23%
+    ),
+    radial-gradient(
+      ellipse at 73% 62%,
+      color-mix(in srgb, var(--cream) 2%, transparent),
+      transparent 27%
+    );
+}
+.board-surface[data-design='concrete-wall']::before {
+  background:
+    radial-gradient(
+      circle at 18% 22%,
+      color-mix(in srgb, var(--cream) 7%, transparent),
+      transparent 10%
+    ),
+    radial-gradient(
+      circle at 75% 62%,
+      color-mix(in srgb, var(--wood-dark) 12%, transparent),
+      transparent 14%
+    ),
+    radial-gradient(
+      circle at 42% 78%,
+      color-mix(in srgb, var(--cream) 4%, transparent),
+      transparent 11%
+    );
+}
+.board-surface[data-design='concrete-wall']::after {
+  background: repeating-linear-gradient(
+    37deg,
+    transparent 0 38px,
+    color-mix(in srgb, var(--wood-dark) 4%, transparent) 39px,
+    transparent 40px 78px
+  );
+}
+.preview {
+  border-radius: 7px;
+  .surface-vignette {
+    box-shadow: inset 0 0 28px var(--board-vignette);
+  }
+}
+.preview-note {
+  position: absolute;
+  z-index: 5;
+  width: 30%;
+  height: 32%;
+  border-radius: 2px;
+  box-shadow:
+    0 3px 7px color-mix(in srgb, var(--wood-dark) 35%, transparent),
+    0 1px 2px color-mix(in srgb, var(--wood-dark) 22%, transparent);
+}
+.note-one {
+  top: 18%;
+  left: 12%;
+  transform: rotate(-5deg);
+  background: color-mix(in srgb, var(--yellow) 78%, var(--cream));
+}
+.note-two {
+  top: 34%;
+  left: 42%;
+  transform: rotate(4deg);
+  background: color-mix(in srgb, var(--purple) 52%, var(--cream));
+}
+.note-three {
+  top: 17%;
+  right: 10%;
+  transform: rotate(2deg);
+  background: color-mix(in srgb, var(--sage) 58%, var(--cream));
+}

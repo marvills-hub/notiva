@@ -1,0 +1,328 @@
+<section class="drawing-boards-page">
+  @if (activeBoard(); as board) {
+    <div class="drawing-editor-view">
+      <header class="drawing-editor-header">
+        <button
+          type="button"
+          class="back-btn"
+          title="Back to Drawing Boards"
+          (click)="closeBoard()"
+        >
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="editor-board-info">
+          <span class="editor-board-icon" [class]="boardPreviewClass(board.type)">
+            <i [class]="getDefinition(board.type).icon"></i>
+          </span>
+          <div>
+            <strong>{{ board.name }}</strong>
+            <span
+              >{{ getDefinition(board.type).name }} ·
+              {{ getDefinition(board.type).tool.name }}</span
+            >
+          </div>
+        </div>
+        <div class="editor-spacer"></div>
+        <button
+          type="button"
+          class="editor-action"
+          title="Rename board"
+          (click)="startRename($event, board)"
+        >
+          <i class="fa-solid fa-pen"></i>
+          <span>Rename</span>
+        </button>
+        <button
+          type="button"
+          class="editor-action delete"
+          title="Delete board"
+          (click)="requestDelete($event, board.id)"
+        >
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </header>
+      <div class="drawing-editor-content">
+        <app-drawing-board [board]="board"></app-drawing-board>
+      </div>
+    </div>
+  } @else {
+    <div class="drawing-boards-header">
+      <div class="drawing-boards-title">
+        <span class="page-icon">
+          <i class="fa-solid fa-pen-ruler"></i>
+        </span>
+        <div>
+          <h1>Drawing Boards</h1>
+          <p>Draw, sketch and write using boards with their own physical writing tools.</p>
+        </div>
+      </div>
+      <button type="button" class="create-board-btn" (click)="openCreatePanel()">
+        <i class="fa-solid fa-plus"></i>
+        <span>New Drawing Board</span>
+      </button>
+    </div>
+    @if (boards().length) {
+      <div class="drawing-board-grid">
+        @for (board of boards(); track board.id) {
+          <article class="drawing-board-card" (click)="openBoard(board.id)">
+            <div class="board-preview" [class]="boardPreviewClass(board.type)">
+              <div class="preview-surface">
+                @switch (board.type) {
+                  @case ('whiteboard') {
+                    <div class="whiteboard-preview-content">
+                      <span class="preview-writing preview-writing-primary"></span>
+                      <span class="preview-writing preview-writing-secondary"></span>
+                      <span class="preview-writing preview-writing-small"></span>
+                      <span class="preview-circle"></span>
+                    </div>
+                  }
+                  @case ('blackboard') {
+                    <div class="chalk-preview-content">
+                      <span class="chalk-line line-one"></span>
+                      <span class="chalk-line line-two"></span>
+                      <span class="chalk-line line-three"></span>
+                      <span class="chalk-shape"></span>
+                    </div>
+                  }
+                  @case ('green-chalkboard') {
+                    <div class="chalk-preview-content">
+                      <span class="chalk-line line-one"></span>
+                      <span class="chalk-line line-two"></span>
+                      <span class="chalk-line line-three"></span>
+                      <span class="chalk-shape"></span>
+                    </div>
+                  }
+                  @case ('graph-board') {
+                    <div class="graph-preview-content">
+                      <span class="graph-node node-one"></span>
+                      <span class="graph-node node-two"></span>
+                      <span class="graph-node node-three"></span>
+                      <span class="graph-connection connection-one"></span>
+                      <span class="graph-connection connection-two"></span>
+                    </div>
+                  }
+                  @case ('notebook') {
+                    <div class="notebook-preview-content">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                  }
+                  @case ('blueprint') {
+                    <div class="blueprint-preview-content">
+                      <span class="blueprint-box box-one"></span>
+                      <span class="blueprint-box box-two"></span>
+                      <span class="blueprint-line blueprint-line-one"></span>
+                      <span class="blueprint-line blueprint-line-two"></span>
+                    </div>
+                  }
+                }
+                @if (board.strokes.length) {
+                  <div class="has-drawing-badge">
+                    <i class="fa-solid fa-pen"></i>
+                    {{ board.strokes.length }}
+                  </div>
+                }
+              </div>
+            </div>
+            <div class="board-card-content">
+              <div class="board-card-heading">
+                <div>
+                  <strong>{{ board.name }}</strong>
+                  <span>{{ getDefinition(board.type).name }}</span>
+                </div>
+                <div class="board-card-actions">
+                  <button type="button" title="Rename" (click)="startRename($event, board)">
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="delete"
+                    title="Delete"
+                    (click)="requestDelete($event, board.id)"
+                  >
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="board-card-meta">
+                <span>
+                  <i [class]="getDefinition(board.type).tool.icon"></i>
+                  {{ getDefinition(board.type).tool.name }}
+                </span>
+                <span>
+                  <i class="fa-solid fa-pencil"></i>
+                  {{ board.strokes.length }} {{ board.strokes.length === 1 ? 'stroke' : 'strokes' }}
+                </span>
+              </div>
+            </div>
+          </article>
+        }
+        <button type="button" class="drawing-board-add-card" (click)="openCreatePanel()">
+          <span>
+            <i class="fa-solid fa-plus"></i>
+          </span>
+          <strong>Create Drawing Board</strong>
+          <small>Whiteboard, chalkboard, notebook and more</small>
+        </button>
+      </div>
+    } @else {
+      <div class="drawing-boards-empty">
+        <div class="empty-board-stack">
+          <span class="empty-board-paper paper-back"></span>
+          <span class="empty-board-paper paper-middle"></span>
+          <span class="empty-board-paper paper-front">
+            <i class="fa-solid fa-pen-ruler"></i>
+          </span>
+        </div>
+        <strong>Create your first Drawing Board</strong>
+        <p>Choose a surface and start writing with the tool made for that board.</p>
+        <button type="button" (click)="openCreatePanel()">
+          <i class="fa-solid fa-plus"></i>
+          New Drawing Board
+        </button>
+      </div>
+    }
+  }
+</section>
+@if (createPanelOpen()) {
+  <div class="drawing-modal-backdrop" (click)="closeCreatePanel()">
+    <section class="drawing-create-modal" (click)="$event.stopPropagation()">
+      <header class="create-modal-header">
+        <div>
+          <span>NEW DRAWING BOARD</span>
+          <h2>Choose your surface</h2>
+          <p>Each surface comes with a writing tool designed specifically for it.</p>
+        </div>
+        <button type="button" title="Close" (click)="closeCreatePanel()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+      <div class="create-modal-content">
+        <div class="board-type-grid">
+          @for (definition of definitions; track definition.type) {
+            <button
+              type="button"
+              class="board-type-option"
+              [class.selected]="selectedBoardType() === definition.type"
+              (click)="selectBoardType(definition.type)"
+            >
+              <span class="type-preview" [class]="boardPreviewClass(definition.type)">
+                <span class="type-preview-surface">
+                  <i [class]="definition.icon"></i>
+                </span>
+              </span>
+              <span class="type-option-content">
+                <strong>{{ definition.name }}</strong>
+                <small>{{ definition.description }}</small>
+                <span class="type-tool">
+                  <i [class]="definition.tool.icon"></i>
+                  {{ definition.tool.name }}
+                </span>
+              </span>
+              @if (selectedBoardType() === definition.type) {
+                <span class="selected-check">
+                  <i class="fa-solid fa-check"></i>
+                </span>
+              }
+            </button>
+          }
+        </div>
+        <div class="selected-board-settings">
+          <div class="selected-board-preview" [class]="boardPreviewClass(selectedBoardType())">
+            <div class="selected-preview-surface">
+              <i [class]="selectedDefinition().icon"></i>
+              <strong>{{ selectedDefinition().name }}</strong>
+              <span>{{ selectedDefinition().tool.name }}</span>
+            </div>
+          </div>
+          <div class="board-name-field">
+            <label for="drawing-board-name">Board name</label>
+            <input
+              id="drawing-board-name"
+              type="text"
+              maxlength="80"
+              [value]="newBoardName()"
+              [placeholder]="selectedDefinition().name"
+              (input)="onCreateNameInput($event)"
+              (keydown.enter)="createBoard()"
+            />
+            <span>Leave blank to use “{{ selectedDefinition().name }}”.</span>
+          </div>
+          <div class="tool-preview">
+            <div class="tool-preview-heading">
+              <span>
+                <i [class]="selectedDefinition().tool.icon"></i>
+                {{ selectedDefinition().tool.name }}
+              </span>
+              <small>Available on this board</small>
+            </div>
+            <div class="tool-color-preview">
+              @for (color of selectedDefinition().tool.colors; track color.id) {
+                <span [style.--preview-color]="color.value" [title]="color.name"></span>
+              }
+            </div>
+            <div class="tool-size-preview">
+              @for (size of selectedDefinition().tool.sizes; track size) {
+                <span>{{ size }}px</span>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="create-modal-footer">
+        <button type="button" class="cancel-btn" (click)="closeCreatePanel()">Cancel</button>
+        <button type="button" class="confirm-btn" (click)="createBoard()">
+          <i class="fa-solid fa-plus"></i>
+          Create {{ selectedDefinition().name }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}
+@if (renamingBoardId()) {
+  <div class="drawing-modal-backdrop rename-backdrop" (click)="cancelRename($event)">
+    <form class="rename-modal" (submit)="saveRename($event)" (click)="$event.stopPropagation()">
+      <div class="rename-icon">
+        <i class="fa-solid fa-pen"></i>
+      </div>
+      <div class="rename-content">
+        <span>RENAME DRAWING BOARD</span>
+        <h3>Change board name</h3>
+        <input
+          type="text"
+          maxlength="80"
+          autofocus
+          [value]="renameValue()"
+          (input)="onRenameInput($event)"
+        />
+      </div>
+      <div class="rename-actions">
+        <button type="button" (click)="cancelRename($event)">Cancel</button>
+        <button type="submit" class="save">Save Name</button>
+      </div>
+    </form>
+  </div>
+}
+@if (deletingBoardId()) {
+  <div class="drawing-modal-backdrop delete-backdrop" (click)="cancelDelete($event)">
+    <section class="delete-modal" (click)="$event.stopPropagation()">
+      <div class="delete-modal-icon">
+        <i class="fa-regular fa-trash-can"></i>
+      </div>
+      <div>
+        <span>DELETE DRAWING BOARD</span>
+        <h3>Delete this board?</h3>
+        <p>The board and all of its drawing strokes will be removed.</p>
+      </div>
+      <div class="delete-modal-actions">
+        <button type="button" (click)="cancelDelete($event)">Cancel</button>
+        <button type="button" class="delete" (click)="confirmDelete($event)">
+          <i class="fa-regular fa-trash-can"></i>
+          Delete Board
+        </button>
+      </div>
+    </section>
+  </div>
+}

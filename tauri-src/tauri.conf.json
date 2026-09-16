@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Notiva",
+  "version": "0.1.0",
+  "identifier": "com.marvills.notiva",
+  "build": {
+    "devUrl": "http://localhost:4200",
+    "frontendDist": "../dist/notiva/browser"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Notiva",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 650,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false
+  }
+}

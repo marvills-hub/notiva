@@ -1,0 +1,282 @@
+<ng-template #calendarPage let-page let-actions="actions">
+  <header class="calendar-header">
+    <div class="calendar-title">
+      <div class="calendar-title-date">
+        <span class="calendar-year">{{ page.year }}</span>
+        <strong>{{ page.monthName }}</strong>
+      </div>
+      <span class="calendar-month-meta">{{ page.daysInMonth }} days</span>
+    </div>
+    @if (actions) {
+      <div class="calendar-actions">
+        <button
+          type="button"
+          title="Previous month"
+          [disabled]="flipping()"
+          (click)="flipPrevious($event)"
+        >
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button type="button" class="today-btn" [disabled]="flipping()" (click)="goToToday($event)">
+          Today
+        </button>
+        <button type="button" title="Next month" [disabled]="flipping()" (click)="flipNext($event)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button
+          type="button"
+          title="{{ note().pinned ? 'Unlock calendar position' : 'Lock calendar position' }}"
+          [class.active]="note().pinned"
+          (click)="togglePinned($event)"
+        >
+          <i
+            class="fa-solid"
+            [class.fa-lock]="note().pinned"
+            [class.fa-thumbtack]="!note().pinned"
+          ></i>
+        </button>
+        <button type="button" title="Duplicate" (click)="duplicate($event)">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+        <button type="button" class="delete-btn" title="Delete calendar" (click)="delete($event)">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
+    }
+  </header>
+  <div class="calendar-weekdays">
+    <span class="sunday">SUN</span>
+    <span>MON</span>
+    <span>TUE</span>
+    <span>WED</span>
+    <span>THU</span>
+    <span>FRI</span>
+    <span>SAT</span>
+  </div>
+  <div class="calendar-grid">
+    @for (day of page.days; track day.date) {
+      <div
+        class="calendar-day"
+        [class.outside-month]="!day.currentMonth"
+        [class.sunday]="day.sunday"
+        [class.today]="day.today"
+        [class.holiday]="!!day.holiday"
+        [class.regular-holiday]="day.holiday?.type === 'regular'"
+        [class.special-holiday]="day.holiday?.type === 'special'"
+      >
+        <div class="calendar-day-heading">
+          <div class="calendar-date">
+            <strong class="calendar-date-number">{{ day.day }}</strong>
+            @if (!day.currentMonth) {
+              <span class="calendar-adjacent-month">{{ getMonthShortName(day.month) }}</span>
+            }
+          </div>
+          @if (day.moonPhase) {
+            <div class="calendar-moon-phase" [title]="day.moonPhase.label">
+              <span class="moon-icon">{{ day.moonPhase.icon }}</span>
+              <span class="moon-label">{{ day.moonPhase.label }}</span>
+            </div>
+          }
+        </div>
+        <div class="calendar-day-content">
+          @if (day.holiday) {
+            <span class="calendar-holiday" [title]="day.holiday.name">
+              <i class="fa-solid fa-flag"></i>
+              <span>{{ day.holiday.name }}</span>
+            </span>
+          }
+          @for (event of getCalendarEvents(day.date); track event.id) {
+            <span class="calendar-event" [title]="event.title">
+              <i class="fa-solid fa-circle"></i>
+              <span>{{ event.title }}</span>
+            </span>
+          }
+        </div>
+        @if (day.tide) {
+          <div class="calendar-tides" title="Tide station data will be connected later">
+            <span class="tide-item tide-high">
+              <i class="fa-solid fa-arrow-up"></i>
+              <span class="tide-name">HIGH</span>
+              <strong>{{ day.tide.highTime || '--:--' }}</strong>
+              @if (day.tide.highHeight !== null) {
+                <small>{{ day.tide.highHeight }}m</small>
+              }
+            </span>
+            <span class="tide-item tide-low">
+              <i class="fa-solid fa-arrow-down"></i>
+              <span class="tide-name">LOW</span>
+              <strong>{{ day.tide.lowTime || '--:--' }}</strong>
+              @if (day.tide.lowHeight !== null) {
+                <small>{{ day.tide.lowHeight }}m</small>
+              }
+            </span>
+          </div>
+        }
+        @if (day.today) {
+          <span class="calendar-today-label">TODAY</span>
+        }
+      </div>
+    }
+  </div>
+  <footer class="calendar-footer">
+    <div class="calendar-footer-main">
+      <span>
+        <i class="fa-solid fa-location-dot"></i>
+        Philippine Calendar
+      </span>
+      <span class="calendar-footer-date">{{ page.monthName }} {{ page.year }}</span>
+    </div>
+    <div class="calendar-footer-legend">
+      @if (note().calendar?.showHolidays) {
+        <span>
+          <i class="fa-solid fa-flag"></i>
+          PH Holidays
+        </span>
+      }
+      @if (note().calendar?.showMoonPhases) {
+        <span>
+          <i class="fa-regular fa-moon"></i>
+          Moon Phases
+        </span>
+      }
+      <span>
+        <i class="fa-solid fa-water"></i>
+        Tides
+      </span>
+    </div>
+  </footer>
+</ng-template>
+<article
+  class="calendar"
+  [class.dragging]="dragging"
+  [class.selected]="selected()"
+  [class.flipping]="flipping()"
+  [class.manual-flipping]="manualFlipping()"
+  [class.manual-next]="manualFlipDirection() === 'next'"
+  [class.manual-previous]="manualFlipDirection() === 'previous'"
+  [class.flip-next]="activeFlipDirection() === 'next'"
+  [class.flip-previous]="activeFlipDirection() === 'previous'"
+  [class.settling-flip]="settlingFlip()"
+  [class.position-locked]="note().pinned"
+  [style.--paper-curve]="paperCurveStrength()"
+  [style.--paper-shadow]="paperShadowStrength()"
+  [style.left.px]="x()"
+  [style.top.px]="y()"
+  [style.width.px]="width()"
+  [style.height.px]="height()"
+  [style.z-index]="note().zIndex"
+  (pointerdown)="startDrag($event)"
+  (pointermove)="drag($event)"
+  (pointerup)="endDrag($event)"
+  (pointercancel)="endDrag($event)"
+>
+  <div class="calendar-shadow"></div>
+  <div class="calendar-back-sheet calendar-back-sheet-3"></div>
+  <div class="calendar-back-sheet calendar-back-sheet-2"></div>
+  <div class="calendar-back-sheet calendar-back-sheet-1"></div>
+  @if (destinationPage(); as destination) {
+    <div
+      class="calendar-sheet calendar-destination-sheet"
+      [class.visible-under-page]="activeFlipDirection() === 'next'"
+    >
+      <ng-container
+        *ngTemplateOutlet="calendarPage; context: { $implicit: destination, actions: true }"
+      ></ng-container>
+    </div>
+  }
+  <div
+    class="calendar-sheet calendar-current-sheet"
+    [class.hidden-by-paper]="flipping() && activeFlipDirection() === 'next'"
+  >
+    <ng-container
+      *ngTemplateOutlet="calendarPage; context: { $implicit: currentPage(), actions: true }"
+    ></ng-container>
+    <div
+      class="calendar-page-grip"
+      title="Pull upward for next month"
+      (pointerdown)="startNextManualFlip($event)"
+      (pointermove)="moveManualFlip($event)"
+      (pointerup)="endManualFlip($event)"
+      (pointercancel)="cancelManualFlipFromPointer($event)"
+    >
+      <span></span>
+    </div>
+  </div>
+  @if (flipping()) {
+    <div class="paper-3d-layer">
+      @for (strip of paperStrips; track strip) {
+        <div
+          class="paper-strip"
+          [style.top.px]="paperStripTop(strip)"
+          [style.height.px]="paperStripHeight()"
+          [style.transform]="paperStripTransform(strip)"
+          [style.--strip-shadow]="paperStripShade(strip)"
+          [style.--strip-highlight]="paperStripHighlight(strip)"
+        >
+          <div class="paper-strip-face paper-strip-front">
+            <div
+              class="paper-strip-page"
+              [style.top.px]="paperSurfaceTop(strip)"
+              [style.width.px]="width()"
+              [style.height.px]="pageHeight()"
+            >
+              <ng-container
+                *ngTemplateOutlet="
+                  calendarPage;
+                  context: { $implicit: flippingPage(), actions: true }
+                "
+              ></ng-container>
+            </div>
+          </div>
+          <div class="paper-strip-face paper-strip-back"></div>
+          <div class="paper-strip-edge"></div>
+        </div>
+      }
+    </div>
+  }
+  <div
+    class="calendar-back-grip"
+    title="Pull downward to bring the previous page forward"
+    (pointerdown)="startPreviousManualFlip($event)"
+    (pointermove)="moveManualFlip($event)"
+    (pointerup)="endManualFlip($event)"
+    (pointercancel)="cancelManualFlipFromPointer($event)"
+  ></div>
+  <div class="calendar-binding">
+    <button
+      type="button"
+      class="calendar-pin calendar-pin-left"
+      title="Change left pushpin"
+      (click)="changeLeftPin($event)"
+    >
+      <app-note-pin [pinId]="note().pinId"></app-note-pin>
+    </button>
+    @if (note().secondaryPinId; as secondaryPinId) {
+      <button
+        type="button"
+        class="calendar-pin calendar-pin-right"
+        title="Change right pushpin"
+        (click)="changeRightPin($event)"
+      >
+        <app-note-pin [pinId]="secondaryPinId"></app-note-pin>
+      </button>
+    }
+    <div class="binding-bar"></div>
+    <div class="binding-rings">
+      @for (ring of [1, 2, 3, 4, 5, 6, 7, 8]; track ring) {
+        <span class="binding-ring"></span>
+      }
+    </div>
+  </div>
+  @if (!note().pinned) {
+    <div
+      class="resize-handle"
+      (pointerdown)="startResize($event)"
+      (pointermove)="resize($event)"
+      (pointerup)="endResize($event)"
+      (pointercancel)="endResize($event)"
+    >
+      <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+    </div>
+  }
+</article>

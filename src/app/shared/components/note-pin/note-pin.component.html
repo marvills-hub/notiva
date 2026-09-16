@@ -1,0 +1,93 @@
+@if (pin().type !== 'none') {
+  <div
+    class="pin"
+    [class.preview]="preview()"
+    [class.pushpin]="pin().type === 'pushpin'"
+    [class.round-pin]="pin().type === 'round-pin'"
+    [class.symbol-pin]="pin().type === 'heart' || pin().type === 'star' || pin().type === 'flower'"
+    [class.flag-pin]="pin().type === 'flag'"
+    [class.triangle-pin]="pin().type === 'triangle'"
+    [class.circle-pin]="pin().type === 'circle'"
+    [class.face-pin]="pin().type === 'face'"
+    [class.coffee-pin]="pin().type === 'coffee'"
+    [class.leaf-pin]="pin().type === 'leaf'"
+    [class.acorn-pin]="pin().type === 'acorn'"
+    [class.bubble-pin]="pin().type === 'bubble'"
+    [class.gem-pin]="pin().type === 'crystal' || pin().type === 'diamond'"
+    [class.tape-pin]="pin().type === 'tape'"
+    [class.paperclip-pin]="pin().type === 'paperclip'"
+    [class.stripe]="pin().pattern === 'stripe'"
+    [class.dots]="pin().pattern === 'dots'"
+    [class.grid]="pin().pattern === 'grid'"
+    [class.floral]="pin().pattern === 'floral'"
+    [style.--pin-color]="pin().color"
+    [style.--pin-secondary]="pin().secondaryColor || pin().color"
+    [style.transform]="'rotate(' + (pin().rotation || 0) + 'deg)'"
+  >
+    @if (pin().type === 'pushpin') {
+      <span class="pin-head"></span>
+      <span class="pin-neck"></span>
+    }
+
+    @if (pin().type === 'round-pin') {
+      <span class="round-head"></span>
+      <span class="round-neck"></span>
+    }
+
+    @if (pin().type === 'heart' || pin().type === 'star' || pin().type === 'flower') {
+      <i [class]="pin().icon"></i>
+
+      @if (pin().type === 'flower') {
+        <span class="flower-center"></span>
+      }
+    }
+
+    @if (pin().type === 'flag') {
+      <span class="flag-pole"></span>
+      <span class="flag"></span>
+    }
+
+    @if (pin().type === 'triangle') {
+      <span class="triangle"></span>
+    }
+
+    @if (pin().type === 'circle') {
+      <span class="circle"></span>
+    }
+
+    @if (pin().type === 'face') {
+      <span class="face-circle">
+        <i [class]="pin().icon"></i>
+      </span>
+    }
+
+    @if (pin().type === 'coffee') {
+      <span class="coffee-bean"></span>
+    }
+
+    @if (pin().type === 'leaf') {
+      <i [class]="pin().icon"></i>
+    }
+
+    @if (pin().type === 'acorn') {
+      <span class="acorn-cap"></span>
+      <span class="acorn-body"></span>
+    }
+
+    @if (pin().type === 'bubble') {
+      <span class="bubble"></span>
+    }
+
+    @if (pin().type === 'crystal' || pin().type === 'diamond') {
+      <i [class]="pin().icon"></i>
+    }
+
+    @if (pin().type === 'tape') {
+      <span class="tape"></span>
+    }
+
+    @if (pin().type === 'paperclip') {
+      <i [class]="pin().icon"></i>
+    }
+  </div>
+}

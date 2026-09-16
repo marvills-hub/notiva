@@ -1,0 +1,391 @@
+<section
+  class="drawing-board"
+  [class]="definition().surfaceClass"
+  [style.--board-background]="definition().background"
+>
+  <header class="drawing-toolbar">
+    <div class="drawing-board-identity">
+      <span class="board-type-icon"><i [class]="definition().icon"></i></span>
+      <div>
+        <strong>{{ board().name }}</strong>
+        <span>{{ definition().name }}</span>
+      </div>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="tool-selector">
+      <button
+        type="button"
+        [class.active]="!erasing() && !snipMode()"
+        [title]="definition().tool.name"
+        (click)="selectDrawingTool()"
+      >
+        <i [class]="definition().tool.icon"></i>
+        <span>{{ definition().tool.name }}</span>
+      </button>
+      <button
+        type="button"
+        [class.active]="erasing() && !snipMode()"
+        title="Eraser"
+        (click)="selectEraser()"
+      >
+        <i class="fa-solid fa-eraser"></i>
+        <span>Eraser</span>
+      </button>
+      <button
+        type="button"
+        class="sticker-picker-btn"
+        title="Stickers & Emoji"
+        (click)="openStickerPicker()"
+      >
+        <i class="fa-regular fa-face-smile"></i>
+        <span>Stickers</span>
+      </button>
+      <button
+        type="button"
+        class="snip-tool-btn"
+        [class.active]="snipMode()"
+        title="Snip & Pin"
+        (click)="activateSnipMode()"
+      >
+        <i class="fa-solid fa-crop-simple"></i>
+        <span>Snip</span>
+      </button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="color-options">
+      @for (color of definition().tool.colors; track color.id) {
+        <button
+          type="button"
+          class="color-option"
+          [class.active]="!erasing() && !snipMode() && activeColor() === color.value"
+          [title]="color.name"
+          [style.--tool-color]="color.value"
+          (click)="selectColor(color.value)"
+        ></button>
+      }
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="stroke-options">
+      @for (size of definition().tool.sizes; track size) {
+        <button
+          type="button"
+          class="stroke-option"
+          [class.active]="activeSize() === size"
+          [title]="'Stroke ' + size + 'px'"
+          (click)="selectSize(size)"
+        >
+          <span
+            [style.width.px]="strokePreviewSize(size)"
+            [style.height.px]="strokePreviewSize(size)"
+          ></span>
+        </button>
+      }
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="zoom-actions">
+      <button type="button" title="Zoom out" [disabled]="zoom() <= minZoom" (click)="zoomOut()">
+        <i class="fa-solid fa-minus"></i>
+      </button>
+      <button
+        type="button"
+        class="zoom-value"
+        title="Reset zoom to 100%"
+        [class.zoomed]="zoom() !== 1"
+        (click)="resetZoom()"
+      >
+        {{ zoomPercent() }}%
+      </button>
+      <button type="button" title="Zoom in" [disabled]="zoom() >= maxZoom" (click)="zoomIn()">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="history-actions">
+      <button type="button" title="Undo" [disabled]="!canUndo()" (click)="undo()">
+        <i class="fa-solid fa-rotate-left"></i>
+      </button>
+      <button type="button" title="Redo" [disabled]="!canRedo()" (click)="redo()">
+        <i class="fa-solid fa-rotate-right"></i>
+      </button>
+      <button
+        type="button"
+        class="clear-board"
+        title="Clear board"
+        [disabled]="!board().strokes.length && !board().stickers.length && !board().snips.length"
+        (click)="clear()"
+      >
+        <i class="fa-regular fa-trash-can"></i>
+      </button>
+    </div>
+  </header>
+  <div
+    #drawingViewport
+    class="drawing-viewport"
+    [class.panning]="panning()"
+    [class.pan-ready]="spacePressed()"
+    (wheel)="onViewportWheel($event)"
+    (pointerdown)="startPan($event)"
+  >
+    <div
+      class="drawing-world"
+      [style.width.px]="worldWidth()"
+      [style.height.px]="worldHeight()"
+      [style.transform]="worldTransform()"
+    >
+      <div
+        #drawingSurface
+        class="drawing-surface"
+        [class.snip-mode]="snipMode()"
+        [class.snipping]="snipping()"
+        [style.width.px]="worldWidth()"
+        [style.height.px]="worldHeight()"
+        (pointerdown)="deselectObjects()"
+      >
+        <canvas
+          #drawingCanvas
+          class="drawing-canvas"
+          (pointerdown)="startDrawing($event)"
+          (pointermove)="continueDrawing($event)"
+          (pointerup)="endDrawing($event)"
+          (pointercancel)="cancelDrawing($event)"
+        ></canvas>
+        <div class="drawing-snip-layer">
+          @for (snip of board().snips; track snip.id) {
+            <div
+              class="drawing-snip"
+              [class.selected]="selectedSnipId() === snip.id"
+              [class.pinned]="snip.pinned"
+              [class.unpinned]="!snip.pinned"
+              [style.left.px]="snip.x"
+              [style.top.px]="snip.y"
+              [style.width.px]="snip.width"
+              [style.height.px]="snip.height"
+              [style.transform]="'rotate(' + snip.rotation + 'deg)'"
+              [style.z-index]="snip.zIndex"
+              (pointerdown)="selectSnip($event, snip.id)"
+            >
+              <div class="drawing-snip-paper">
+                <img [src]="snip.imageData" alt="" draggable="false" />
+              </div>
+              @if (snip.pinned) {
+                <div class="drawing-snip-pin"><span></span></div>
+              }
+              @if (selectedSnipId() === snip.id) {
+                <div class="drawing-snip-selection"></div>
+                <div class="drawing-snip-toolbar" (pointerdown)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    [title]="snip.pinned ? 'Unpin and edit' : 'Pin and lock'"
+                    (click)="toggleSnipPinned($event, snip.id)"
+                  >
+                    <i class="fa-solid fa-thumbtack"></i>
+                  </button>
+                  <button
+                    type="button"
+                    title="Send backward"
+                    (click)="sendSnipBackward($event, snip.id)"
+                  >
+                    <i class="fa-solid fa-arrow-down"></i>
+                  </button>
+                  <button
+                    type="button"
+                    title="Bring forward"
+                    (click)="bringSnipForward($event, snip.id)"
+                  >
+                    <i class="fa-solid fa-arrow-up"></i>
+                  </button>
+                  <span></span>
+                  <button
+                    type="button"
+                    class="delete"
+                    title="Delete"
+                    (click)="deleteSnip($event, snip.id)"
+                  >
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+                @if (!snip.pinned) {
+                  <button
+                    type="button"
+                    class="drawing-snip-rotate"
+                    title="Rotate"
+                    (pointerdown)="startSnipRotate($event, snip.id)"
+                  >
+                    <i class="fa-solid fa-rotate-right"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="drawing-snip-resize"
+                    title="Resize"
+                    (pointerdown)="startSnipResize($event, snip.id)"
+                  >
+                    <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+                  </button>
+                }
+              }
+            </div>
+          }
+        </div>
+        <div class="drawing-sticker-layer">
+          @for (sticker of board().stickers; track sticker.id) {
+            <div
+              class="drawing-sticker"
+              [class.selected]="selectedStickerId() === sticker.id"
+              [class.emoji]="sticker.type === 'emoji'"
+              [class.symbol]="sticker.type === 'symbol'"
+              [class.decorative]="sticker.type === 'sticker'"
+              [class.label]="sticker.category === 'labels'"
+              [class.tape]="sticker.category === 'tape'"
+              [class.pin]="sticker.category === 'pins'"
+              [class.doodle]="sticker.category === 'doodles'"
+              [style.left.px]="sticker.x"
+              [style.top.px]="sticker.y"
+              [style.width.px]="sticker.width"
+              [style.height.px]="sticker.height"
+              [style.transform]="'rotate(' + sticker.rotation + 'deg)'"
+              [style.z-index]="sticker.zIndex"
+              (pointerdown)="selectSticker($event, sticker.id)"
+            >
+              <div class="drawing-sticker-content">
+                <span>{{ sticker.value }}</span>
+              </div>
+              @if (selectedStickerId() === sticker.id) {
+                <div class="drawing-sticker-selection"></div>
+                <div class="drawing-sticker-toolbar" (pointerdown)="$event.stopPropagation()">
+                  <button
+                    type="button"
+                    title="Duplicate"
+                    (click)="duplicateSticker($event, sticker.id)"
+                  >
+                    <i class="fa-regular fa-copy"></i>
+                  </button>
+                  <button
+                    type="button"
+                    title="Send backward"
+                    (click)="sendStickerBackward($event, sticker.id)"
+                  >
+                    <i class="fa-solid fa-arrow-down"></i>
+                  </button>
+                  <button
+                    type="button"
+                    title="Bring forward"
+                    (click)="bringStickerForward($event, sticker.id)"
+                  >
+                    <i class="fa-solid fa-arrow-up"></i>
+                  </button>
+                  <span></span>
+                  <button
+                    type="button"
+                    class="delete"
+                    title="Delete"
+                    (click)="deleteSticker($event, sticker.id)"
+                  >
+                    <i class="fa-regular fa-trash-can"></i>
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  class="drawing-sticker-rotate"
+                  title="Rotate"
+                  (pointerdown)="startStickerRotate($event, sticker.id)"
+                >
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button
+                  type="button"
+                  class="drawing-sticker-resize"
+                  title="Resize"
+                  (pointerdown)="startStickerResize($event, sticker.id)"
+                >
+                  <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+                </button>
+              }
+            </div>
+          }
+        </div>
+        @if (snipSelection(); as selection) {
+          <div
+            class="drawing-snip-marquee"
+            [style.left.px]="selection.x"
+            [style.top.px]="selection.y"
+            [style.width.px]="selection.width"
+            [style.height.px]="selection.height"
+          ></div>
+        }
+        @if (
+          !board().strokes.length &&
+          !board().stickers.length &&
+          !board().snips.length &&
+          !drawing() &&
+          !snipping()
+        ) {
+          <div class="drawing-empty-state">
+            <i [class]="definition().tool.icon"></i>
+            <strong>Start drawing</strong>
+            <span>Draw, add stickers and emoji, or use Snip & Pin.</span>
+          </div>
+        }
+        @if (snipMode() && !snipping()) {
+          <div class="drawing-snip-hint">
+            <i class="fa-solid fa-crop-simple"></i>
+            <strong>Snip & Pin</strong>
+            <span>Drag over the part of the board you want to capture.</span>
+            <small>Press Esc to cancel</small>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="drawing-navigation-hint">
+      <span><i class="fa-solid fa-computer-mouse"></i> Ctrl + wheel to zoom</span>
+      <span><i class="fa-regular fa-hand"></i> Space + drag to move board</span>
+    </div>
+  </div>
+  <footer class="drawing-statusbar">
+    <div>
+      @if (snipMode()) {
+        <i class="fa-solid fa-crop-simple"></i>
+        <span>Snip & Pin</span>
+      } @else if (panning() || spacePressed()) {
+        <i class="fa-regular fa-hand"></i>
+        <span>Move Board</span>
+      } @else {
+        <i [class]="definition().tool.icon"></i>
+        <span>{{ erasing() ? 'Eraser' : definition().tool.name }}</span>
+      }
+    </div>
+    @if (!erasing() && !snipMode() && !panning() && !spacePressed()) {
+      <div class="active-tool-preview">
+        <span class="active-color" [style.--tool-color]="activeColor()"></span>
+        <span>{{ activeSize() }}px</span>
+      </div>
+    }
+    <div class="zoom-status">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <span>{{ zoomPercent() }}%</span>
+    </div>
+    <div class="stroke-count">
+      <span
+        >{{ board().strokes.length }}
+        {{ board().strokes.length === 1 ? 'stroke' : 'strokes' }}</span
+      >
+      @if (board().stickers.length) {
+        <span
+          >· {{ board().stickers.length }}
+          {{ board().stickers.length === 1 ? 'sticker' : 'stickers' }}</span
+        >
+      }
+      @if (board().snips.length) {
+        <span
+          >· {{ board().snips.length }} {{ board().snips.length === 1 ? 'snip' : 'snips' }}</span
+        >
+      }
+    </div>
+  </footer>
+</section>
+@if (stickerPickerOpen()) {
+  <app-sticker-picker
+    [boardType]="board().type"
+    (stickerSelected)="addSticker($event)"
+    (closed)="closeStickerPicker()"
+  ></app-sticker-picker>
+}

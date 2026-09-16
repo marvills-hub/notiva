@@ -1,0 +1,133 @@
+<div class="style-browser-backdrop" (mousedown)="closeBackdrop($event)">
+  <section class="style-browser">
+    <header class="browser-header">
+      <div class="browser-title">
+        <span class="eyebrow"> NOTE APPEARANCE </span>
+
+        <div class="title-row">
+          <h2>All Note Designs</h2>
+
+          <span class="design-count">
+            {{ filteredStyles().length }}
+            of
+            {{ styles.length }}
+          </span>
+        </div>
+
+        <p>Compare every Notiva note style at once. Select any design to apply it.</p>
+      </div>
+
+      <button type="button" class="browser-close" title="Close" (click)="closed.emit()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </header>
+
+    <div class="browser-toolbar">
+      <div class="browser-search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+        <input
+          type="text"
+          placeholder="Search note designs..."
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+        />
+
+        @if (searchQuery()) {
+          <button type="button" title="Clear search" (click)="clearSearch()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        }
+      </div>
+
+      <div class="browser-categories">
+        @for (category of categories; track category.value) {
+          <button
+            type="button"
+            [class.active]="selectedCategory() === category.value"
+            (click)="selectedCategory.set(category.value)"
+          >
+            <i [class]="category.icon"></i>
+            <span>{{ category.label }}</span>
+
+            @if (category.value === 'all') {
+              <small>{{ styles.length }}</small>
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="browser-content">
+      @if (filteredStyles().length) {
+        <div class="design-grid">
+          @for (style of filteredStyles(); track style.id) {
+            <button
+              type="button"
+              class="design-card"
+              [class.active]="selectedStyleId() === style.id"
+              (click)="selectStyle(style.id)"
+            >
+              @if (selectedStyleId() === style.id) {
+                <span class="selected-badge">
+                  <i class="fa-solid fa-check"></i>
+                  Selected
+                </span>
+              }
+
+              <div class="design-preview">
+                <app-note-design [style]="style" [preview]="true"></app-note-design>
+              </div>
+
+              <div class="design-details">
+                <div>
+                  <strong>{{ style.name }}</strong>
+                  <span>{{ style.category }}</span>
+                </div>
+
+                <span class="accent-dot" [style.background]="style.accentColor"></span>
+              </div>
+
+              <div class="design-meta">
+                @if (style.pattern !== 'none') {
+                  <span>
+                    <i class="fa-solid fa-border-all"></i>
+                    {{ style.pattern }}
+                  </span>
+                }
+
+                @if (style.decoration !== 'none') {
+                  <span>
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    {{ style.decoration }}
+                  </span>
+                }
+              </div>
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="browser-empty">
+          <i class="fa-regular fa-face-frown"></i>
+
+          <strong>No designs found</strong>
+
+          <span> Try another search or category. </span>
+
+          <button type="button" (click)="clearSearch(); selectedCategory.set('all')">
+            Show All Designs
+          </button>
+        </div>
+      }
+    </div>
+
+    <footer class="browser-footer">
+      <div>
+        <i class="fa-solid fa-circle-info"></i>
+        Clicking a design applies it immediately.
+      </div>
+
+      <button type="button" (click)="closed.emit()">Close</button>
+    </footer>
+  </section>
+</div>

@@ -1,0 +1,23 @@
+<div
+  class="board-surface"
+  [class.preview]="preview()"
+  [attr.data-design]="design().id"
+  [style.--board-background]="design().background"
+  [style.--board-background-size]="design().backgroundSize"
+  [style.--board-background-position]="design().backgroundPosition"
+  [style.--board-overlay]="design().overlay"
+  [style.--board-vignette]="design().vignette"
+  [style.--board-accent]="design().accentColor"
+>
+  <div class="surface-base"></div>
+  <div class="surface-overlay"></div>
+  <div class="surface-vignette"></div>
+
+  @if (preview()) {
+    <div class="preview-note note-one"></div>
+    <div class="preview-note note-two"></div>
+    <div class="preview-note note-three"></div>
+  }
+
+  <ng-content></ng-content>
+</div>

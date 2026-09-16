@@ -1,0 +1,135 @@
+<section class="archive-page">
+  <div class="archive-toolbar">
+    <div class="type-filters">
+      @for (type of types; track type.value) {
+        <button
+          type="button"
+          [class.active]="typeFilter() === type.value"
+          (click)="typeFilter.set(type.value)"
+        >
+          <i [class]="type.icon"></i>
+          <span>{{ type.label }}</span>
+        </button>
+      }
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="archive-count" title="Total archived notes">
+      <i class="fa-solid fa-box-archive"></i>
+      <strong>{{ totalArchived() }}</strong>
+      <span>Archived</span>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="page-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="Search archive..."
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+      />
+      @if (search()) {
+        <button type="button" title="Clear search" (click)="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+    </div>
+  </div>
+  <div class="archive-content">
+    @if (archivedNotes().length) {
+      <div class="archive-grid">
+        @for (note of archivedNotes(); track note.id) {
+          <article class="archive-card">
+            <div class="card-top">
+              <div class="type">
+                <i [class]="getTypeIcon(note.type)"></i>
+                <span>{{ note.type }}</span>
+              </div>
+              @if (note.favorite) {
+                <span class="favorite-marker" title="This note is still favorited">
+                  <i class="fa-solid fa-star"></i>
+                </span>
+              }
+            </div>
+            <div class="card-body">
+              <span class="board-name">
+                <i class="fa-solid fa-table-columns"></i>
+                {{ getBoardName(note.boardId) }}
+              </span>
+              <h3>{{ note.title }}</h3>
+              <p>{{ note.content || 'No content yet.' }}</p>
+              @if (note.tags.length) {
+                <div class="tags">
+                  @for (tag of note.tags.slice(0, 4); track tag) {
+                    <span>#{{ tag }}</span>
+                  }
+                </div>
+              }
+            </div>
+            <footer>
+              <span>
+                <i class="fa-regular fa-clock"></i>
+                {{ note.updatedAt.toLocaleDateString() }}
+              </span>
+              <div class="actions">
+                <button type="button" class="restore" (click)="restoreNote(note)">
+                  <i class="fa-solid fa-rotate-left"></i>
+                  <span>Restore</span>
+                </button>
+                <button
+                  type="button"
+                  class="delete"
+                  title="Delete permanently"
+                  (click)="requestDelete(note)"
+                >
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </footer>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        @if (search() || typeFilter() !== 'all') {
+          <h3>No Matching Archived Notes</h3>
+          <p>Try another search or choose a different note type.</p>
+          <button type="button" (click)="search.set(''); typeFilter.set('all')">
+            Clear Filters
+          </button>
+        } @else {
+          <h3>Your Archive Is Empty</h3>
+          <p>Notes you archive will be safely stored here.</p>
+        }
+      </div>
+    }
+  </div>
+</section>
+@if (deleteTarget()) {
+  <div class="confirmation-backdrop" (click)="cancelDelete()">
+    <div
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="danger-icon">
+        <i class="fa-solid fa-trash"></i>
+      </div>
+      <h3>Delete Note Permanently?</h3>
+      <p>
+        <strong>{{ deleteTarget()!.title }}</strong> will be permanently deleted. This action cannot
+        be undone.
+      </p>
+      <div class="confirmation-actions">
+        <button type="button" class="cancel-btn" (click)="cancelDelete()">Cancel</button>
+        <button type="button" class="delete-btn" (click)="confirmDelete()">
+          <i class="fa-solid fa-trash"></i>
+          Delete Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+}

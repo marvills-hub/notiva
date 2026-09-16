@@ -1,0 +1,137 @@
+<section class="favorites-page">
+  <div class="favorites-toolbar">
+    <div class="type-filters">
+      @for (type of types; track type.value) {
+        <button
+          type="button"
+          [class.active]="typeFilter() === type.value"
+          (click)="typeFilter.set(type.value)"
+        >
+          <i [class]="type.icon"></i>
+          <span>{{ type.label }}</span>
+        </button>
+      }
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="favorite-count" title="Total favorite notes">
+      <i class="fa-solid fa-star"></i>
+      <strong>{{ totalFavorites() }}</strong>
+      <span>Favorites</span>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="page-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="Search favorites..."
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+      />
+      @if (search()) {
+        <button type="button" title="Clear search" (click)="clearSearch()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+    </div>
+  </div>
+  <div class="favorites-content">
+    @if (favorites().length) {
+      <div class="notes-grid">
+        @for (note of favorites(); track note.id) {
+          <article
+            class="favorite-card"
+            [class]="note.color"
+            tabindex="0"
+            (click)="openNote(note)"
+            (keydown.enter)="openNote(note)"
+          >
+            <div class="card-header">
+              <div class="type">
+                <i [class]="getTypeIcon(note.type)"></i>
+                <span>{{ note.type }}</span>
+              </div>
+              <button
+                type="button"
+                title="Remove from favorites"
+                (click)="removeFavorite(note, $event)"
+              >
+                <i class="fa-solid fa-star"></i>
+              </button>
+            </div>
+            <div class="card-body">
+              <span class="board-name">
+                <i class="fa-solid fa-table-columns"></i>
+                {{ getBoardName(note.boardId) }}
+              </span>
+              <h3>{{ note.title }}</h3>
+              @if (note.type === 'checklist' && note.checklistItems.length) {
+                <div class="checklist-preview">
+                  @for (item of note.checklistItems.slice(0, 3); track item.id) {
+                    <span [class.completed]="item.completed">
+                      <i
+                        [class]="
+                          item.completed ? 'fa-solid fa-square-check' : 'fa-regular fa-square'
+                        "
+                      ></i>
+                      {{ item.text }}
+                    </span>
+                  }
+                </div>
+                <small class="progress">{{ getChecklistProgress(note) }}</small>
+              } @else if (note.type === 'quote') {
+                <p class="quote">{{ note.content || 'No quote yet.' }}</p>
+                @if (note.quoteAuthor) {
+                  <small class="quote-author">— {{ note.quoteAuthor }}</small>
+                }
+              } @else {
+                <p>{{ note.content || 'No content yet.' }}</p>
+              }
+              @if (note.tags.length) {
+                <div class="tags">
+                  @for (tag of note.tags.slice(0, 3); track tag) {
+                    <span>#{{ tag }}</span>
+                  }
+                </div>
+              }
+            </div>
+            <footer>
+              <span>
+                <i class="fa-regular fa-clock"></i>
+                {{ note.updatedAt.toLocaleDateString() }}
+              </span>
+              <div class="actions">
+                <button type="button" title="Archive note" (click)="archiveNote(note, $event)">
+                  <i class="fa-solid fa-box-archive"></i>
+                </button>
+                <button
+                  type="button"
+                  class="open"
+                  (click)="$event.stopPropagation(); openNote(note)"
+                >
+                  Open
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </footer>
+          </article>
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        <div class="empty-icon">
+          <i class="fa-regular fa-star"></i>
+        </div>
+        @if (search() || typeFilter() !== 'all') {
+          <h3>No Matching Favorites</h3>
+          <p>Try another search or choose a different note type.</p>
+          <button type="button" (click)="search.set(''); typeFilter.set('all')">
+            Clear Filters
+          </button>
+        } @else {
+          <h3>No Favorite Notes</h3>
+          <p>Star notes from any board and they will appear here.</p>
+        }
+      </div>
+    }
+  </div>
+</section>

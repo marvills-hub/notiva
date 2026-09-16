@@ -1,0 +1,310 @@
+<section class="notes-page">
+  <div class="notes-toolbar">
+    <div class="toolbar-filters">
+      <div class="type-filters">
+        @for (filter of filters; track filter.value) {
+          <button
+            type="button"
+            [class.active]="selectedType() === filter.value"
+            [title]="filter.label"
+            (click)="selectedType.set(filter.value)"
+          >
+            <i [class]="filter.icon"></i>
+            <span>{{ filter.label }}</span>
+          </button>
+        }
+      </div>
+      @if (boardTags().length) {
+        <div class="toolbar-select">
+          <i class="fa-solid fa-tag"></i>
+          <select
+            [value]="selectedTag() || ''"
+            (change)="selectedTag.set($any($event.target).value || null)"
+          >
+            <option value="">All Tags</option>
+            @for (tag of boardTags(); track tag) {
+              <option [value]="tag">{{ tag }}</option>
+            }
+          </select>
+        </div>
+      }
+      <div class="toolbar-select">
+        <i class="fa-solid fa-arrow-down-wide-short"></i>
+        <select [value]="sortMode()" (change)="sortMode.set($any($event.target).value)">
+          <option value="manual">Manual</option>
+          <option value="updated">Recently Updated</option>
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="title">Title</option>
+        </select>
+      </div>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="board-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input
+        type="text"
+        placeholder="Search this board..."
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+      @if (searchQuery()) {
+        <button type="button" title="Clear search" (click)="searchQuery.set('')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      }
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="board-actions">
+      <button
+        type="button"
+        class="design-btn"
+        title="Change board design"
+        (click)="openBoardDesignPicker()"
+      >
+        <i class="fa-solid fa-palette"></i>
+        <span>Design</span>
+      </button>
+      <button
+        type="button"
+        title="Toggle grid"
+        [class.active]="gridEnabled()"
+        (click)="toggleGrid()"
+      >
+        <i class="fa-solid fa-border-all"></i>
+      </button>
+      <div class="zoom-control">
+        <button type="button" title="Zoom out" (click)="zoomOut()">
+          <i class="fa-solid fa-minus"></i>
+        </button>
+        <span>{{ zoomPercent() }}%</span>
+        <button type="button" title="Zoom in" (click)="zoomIn()">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+      <button type="button" title="Reset board view" (click)="resetView()">
+        <i class="fa-solid fa-crosshairs"></i>
+      </button>
+    </div>
+    <div class="toolbar-divider"></div>
+    <div class="new-note-menu">
+      <button
+        type="button"
+        class="new-note-trigger"
+        [class.active]="newNoteMenuOpen()"
+        (click)="toggleNewNoteMenu($event)"
+      >
+        <i class="fa-solid fa-plus"></i>
+        <span>New Note</span>
+        <i class="fa-solid fa-chevron-down menu-chevron" [class.open]="newNoteMenuOpen()"></i>
+      </button>
+      @if (newNoteMenuOpen()) {
+        <div class="new-note-dropdown">
+          <div class="new-note-dropdown-header">
+            <span>CREATE</span>
+            <strong>Choose Note Type</strong>
+          </div>
+          <div class="new-note-options">
+            @for (item of noteTypes; track item.type) {
+              <button
+                type="button"
+                class="new-note-option"
+                (click)="createNoteFromMenu(item.type, item.color)"
+              >
+                <span
+                  class="new-note-option-icon"
+                  [class]="'new-note-option-icon type-' + item.type"
+                >
+                  <i [class]="item.icon"></i>
+                </span>
+                <span class="new-note-option-content">
+                  <strong>{{ item.label }}</strong>
+                  @switch (item.type) {
+                    @case ('text') {
+                      <small>Write a simple note</small>
+                    }
+                    @case ('checklist') {
+                      <small>Create a task list</small>
+                    }
+                    @case ('idea') {
+                      <small>Capture a new idea</small>
+                    }
+                    @case ('reminder') {
+                      <small>Remember something later</small>
+                    }
+                    @case ('quote') {
+                      <small>Save a quote or saying</small>
+                    }
+                    @case ('calendar') {
+                      <small>Pin a wall calendar</small>
+                    }
+                  }
+                </span>
+                <i class="fa-solid fa-chevron-right option-arrow"></i>
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+  <div
+    class="board-viewport"
+    (wheel)="onWheel($event)"
+    (pointerdown)="startPan($event)"
+    (pointermove)="pan($event)"
+    (pointerup)="endPan($event)"
+    (pointercancel)="endPan($event)"
+  >
+    <app-board-surface class="infinite-board-surface" [design]="boardDesign()"></app-board-surface>
+    @if (gridEnabled()) {
+      <div
+        class="board-grid"
+        [style.--grid-size.px]="32 * zoom()"
+        [style.--grid-x.px]="panX()"
+        [style.--grid-y.px]="panY()"
+      ></div>
+    }
+    <div class="board-world" [style.transform]="canvasTransform()">
+      <div class="notes-layer">
+        @for (note of filteredNotes(); track note.id) {
+          @if (note.type === 'calendar') {
+            <app-calendar
+              [note]="note"
+              [zoom]="zoom()"
+              [selected]="isNoteSelected(note.id)"
+              (selectionRequested)="selectNote($event.id, $event.additive)"
+              (dragStarted)="startGroupDrag($event)"
+              (dragMoved)="moveGroupDrag($event)"
+              (dragEnded)="endGroupDrag($event)"
+              (activated)="noteService.bringToFront($event)"
+              (positionChanged)="noteService.updatePosition($event.id, $event.x, $event.y)"
+              (sizeChanged)="noteService.updateSize($event.id, $event.width, $event.height)"
+              (previousMonth)="previousCalendarMonth($event)"
+              (nextMonth)="nextCalendarMonth($event)"
+              (todayClicked)="goToCalendarToday($event)"
+              (pinnedClicked)="noteService.togglePinned($event)"
+              (duplicateClicked)="noteService.duplicateNote($event)"
+              (deleteClicked)="noteService.deleteNote($event)"
+              (pinChanged)="changeCalendarPin($event)"
+              (secondaryPinChanged)="changeCalendarSecondaryPin($event)"
+            ></app-calendar>
+          } @else {
+            <app-note-card
+              [note]="note"
+              [zoom]="zoom()"
+              [selected]="isNoteSelected(note.id)"
+              (selectionRequested)="selectNote($event.id, $event.additive)"
+              (dragStarted)="startGroupDrag($event)"
+              (dragMoved)="moveGroupDrag($event)"
+              (dragEnded)="endGroupDrag($event)"
+              (activated)="noteService.bringToFront($event)"
+              (viewClicked)="openNoteView($event)"
+              (editClicked)="openEditor($event)"
+              (checklistItemToggled)="noteService.toggleChecklistItem($event.noteId, $event.itemId)"
+              (positionChanged)="noteService.updatePosition($event.id, $event.x, $event.y)"
+              (sizeChanged)="noteService.updateSize($event.id, $event.width, $event.height)"
+              (pinnedClicked)="noteService.togglePinned($event)"
+              (favoriteClicked)="noteService.toggleFavorite($event)"
+              (duplicateClicked)="noteService.duplicateNote($event)"
+              (archiveClicked)="noteService.archiveNote($event)"
+              (deleteClicked)="noteService.deleteNote($event)"
+            ></app-note-card>
+          }
+        }
+      </div>
+    </div>
+    @if (selectionCount()) {
+      <div class="selection-toolbar">
+        <div class="selection-count">
+          <i class="fa-solid fa-object-group"></i>
+          <strong>{{ selectionCount() }}</strong>
+          <span>selected</span>
+        </div>
+        <div class="selection-divider"></div>
+        <button
+          type="button"
+          [class.active]="allSelectedPinned()"
+          [title]="allSelectedPinned() ? 'Unpin selected' : 'Pin selected'"
+          (click)="toggleSelectedPinned()"
+        >
+          <i class="fa-solid fa-thumbtack"></i>
+        </button>
+        <button
+          type="button"
+          [class.active]="allSelectedFavorite()"
+          [title]="allSelectedFavorite() ? 'Remove from favorites' : 'Favorite selected'"
+          (click)="toggleSelectedFavorite()"
+        >
+          <i class="fa-solid fa-star"></i>
+        </button>
+        <button type="button" title="Duplicate selected" (click)="duplicateSelected()">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+        <button type="button" title="Archive selected notes" (click)="archiveSelected()">
+          <i class="fa-solid fa-box-archive"></i>
+        </button>
+        <button
+          type="button"
+          class="selection-delete"
+          title="Delete selected"
+          (click)="deleteSelected()"
+        >
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+        <div class="selection-divider"></div>
+        <button type="button" title="Clear selection" (click)="clearSelection()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    }
+    @if (!notes().length) {
+      <div class="empty-board">
+        <div class="empty-icon">
+          <i class="fa-solid fa-thumbtack"></i>
+        </div>
+        <strong>Your board is empty</strong>
+        <span>Pin your first thought, task or idea to this board.</span>
+        <button type="button" (click)="newNote()">
+          <i class="fa-solid fa-plus"></i>
+          Add First Note
+        </button>
+      </div>
+    } @else if (!filteredNotes().length) {
+      <div class="empty-board">
+        <div class="empty-icon">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+        <strong>No matching notes</strong>
+        <span>Try changing your filters or search.</span>
+        <button type="button" (click)="clearFilters()">Clear Filters</button>
+      </div>
+    }
+    <div class="board-help">
+      <i class="fa-solid fa-hand"></i>
+      Drag empty space to pan · Ctrl + click to multi-select · Drag selected notes to move group ·
+      Ctrl + wheel to zoom
+    </div>
+  </div>
+</section>
+@if (viewingNote()) {
+  <app-note-view
+    [note]="viewingNote()!"
+    (closed)="closeNoteView()"
+    (editClicked)="editFromView($event)"
+  ></app-note-view>
+}
+@if (editingNote()) {
+  <app-note-editor
+    [note]="editingNote()!"
+    (saved)="saveNote($event)"
+    (closed)="closeEditor()"
+  ></app-note-editor>
+}
+@if (boardDesignPickerOpen()) {
+  <app-board-design-picker
+    [selectedDesignId]="boardDesign().id"
+    (selected)="selectBoardDesign($event)"
+    (closed)="closeBoardDesignPicker()"
+  ></app-board-design-picker>
+}

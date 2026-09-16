@@ -1,0 +1,301 @@
+<section class="account-page">
+  <div class="account-content">
+    <div class="profile-card">
+      <div class="profile-avatar">
+        @if (authService.photoURL()) {
+          <img [src]="authService.photoURL()" [alt]="authService.displayName() || 'Profile'" />
+        } @else {
+          <span>{{ initials() }}</span>
+        }
+      </div>
+      <div class="profile-summary">
+        <strong>{{ authService.displayName() || 'Notiva User' }}</strong>
+        <span>{{ authService.email() }}</span>
+        <div class="provider-list">
+          @for (provider of providerNames(); track provider) {
+            <span class="provider">
+              <i
+                [class]="provider === 'Google' ? 'fa-brands fa-google' : 'fa-regular fa-envelope'"
+              ></i>
+              {{ provider }}
+            </span>
+          }
+          <span class="provider">
+            <i
+              [class]="
+                emailVerified() ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'
+              "
+            ></i>
+            {{ emailVerified() ? 'Email verified' : 'Email unverified' }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="account-grid">
+      <section class="account-card">
+        <div class="card-header">
+          <div class="card-icon">
+            <i class="fa-regular fa-user"></i>
+          </div>
+          <div>
+            <strong>Profile</strong>
+            <span>Manage the name shown throughout Notiva.</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <label class="field">
+            <span>Display name</span>
+            <input
+              type="text"
+              [ngModel]="displayName()"
+              (ngModelChange)="displayName.set($event)"
+              placeholder="Your name"
+            />
+          </label>
+          @if (profileMessage()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              {{ profileMessage() }}
+            </div>
+          }
+          @if (profileError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ profileError() }}
+            </div>
+          }
+          <div class="card-actions">
+            <button
+              type="button"
+              class="primary-btn"
+              [disabled]="savingProfile() || !displayName().trim()"
+              (click)="saveProfile()"
+            >
+              @if (savingProfile()) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Saving...
+              } @else {
+                <i class="fa-solid fa-check"></i>
+                Save Profile
+              }
+            </button>
+          </div>
+        </div>
+      </section>
+      <section class="account-card">
+        <div class="card-header">
+          <div class="card-icon">
+            <i class="fa-regular fa-envelope"></i>
+          </div>
+          <div>
+            <strong>Email Address</strong>
+            <span>Manage the email connected to your account.</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <label class="field">
+            <span>Email</span>
+            <input
+              type="email"
+              [ngModel]="email()"
+              (ngModelChange)="email.set($event)"
+              placeholder="Email address"
+            />
+          </label>
+          @if (usesPasswordProvider()) {
+            <label class="field">
+              <span>Current password</span>
+              <input
+                type="password"
+                [ngModel]="currentPassword()"
+                (ngModelChange)="currentPassword.set($event)"
+                placeholder="Required to change email"
+              />
+            </label>
+          }
+          @if (usesGoogleProvider() && !usesPasswordProvider()) {
+            <div class="account-info">
+              <i class="fa-brands fa-google"></i>
+              <span>Google will ask you to confirm your identity before changing your email.</span>
+            </div>
+          }
+          @if (emailMessage()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              {{ emailMessage() }}
+            </div>
+          }
+          @if (emailError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ emailError() }}
+            </div>
+          }
+          <div class="card-actions">
+            <button
+              type="button"
+              class="primary-btn"
+              [disabled]="savingEmail() || !email().trim()"
+              (click)="saveEmail()"
+            >
+              @if (savingEmail()) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Updating...
+              } @else {
+                <i class="fa-solid fa-pen"></i>
+                Update Email
+              }
+            </button>
+          </div>
+        </div>
+      </section>
+      <section class="account-card">
+        <div class="card-header">
+          <div class="card-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div>
+            <strong>Security</strong>
+            <span>Verification and password security.</span>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (!emailVerified()) {
+            <div class="security-row">
+              <div>
+                <strong>Verify Email</strong>
+                <span>Confirm your email address to improve account security.</span>
+              </div>
+              <button
+                type="button"
+                class="secondary-btn"
+                [disabled]="sendingVerification()"
+                (click)="sendVerification()"
+              >
+                @if (sendingVerification()) {
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  Sending...
+                } @else {
+                  <i class="fa-regular fa-paper-plane"></i>
+                  Send Verification
+                }
+              </button>
+            </div>
+          }
+          @if (usesPasswordProvider()) {
+            <div class="security-row">
+              <div>
+                <strong>Password</strong>
+                <span>Send a secure password reset link to your account email.</span>
+              </div>
+              <button
+                type="button"
+                class="secondary-btn"
+                [disabled]="sendingReset()"
+                (click)="sendPasswordReset()"
+              >
+                @if (sendingReset()) {
+                  <i class="fa-solid fa-spinner fa-spin"></i>
+                  Sending...
+                } @else {
+                  <i class="fa-solid fa-key"></i>
+                  Reset Password
+                }
+              </button>
+            </div>
+          }
+          @if (emailVerified() && !usesPasswordProvider()) {
+            <div class="account-info">
+              <i class="fa-solid fa-shield-check"></i>
+              <span
+                >Your account is authenticated through your connected provider and your email is
+                verified.</span
+              >
+            </div>
+          }
+          @if (verificationMessage()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              {{ verificationMessage() }}
+            </div>
+          }
+          @if (verificationError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ verificationError() }}
+            </div>
+          }
+          @if (passwordMessage()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              {{ passwordMessage() }}
+            </div>
+          }
+          @if (passwordError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ passwordError() }}
+            </div>
+          }
+        </div>
+      </section>
+      <section class="account-card">
+        <div class="card-header">
+          <div class="card-icon">
+            <i class="fa-solid fa-link"></i>
+          </div>
+          <div>
+            <strong>Account Details</strong>
+            <span>Authentication and account activity.</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="provider-rows">
+            @if (usesPasswordProvider()) {
+              <div class="provider-row connected">
+                <div class="provider-logo">
+                  <i class="fa-regular fa-envelope"></i>
+                </div>
+                <div>
+                  <strong>Email & Password</strong>
+                  <span>Connected sign-in method</span>
+                </div>
+                <i class="fa-solid fa-circle-check provider-state"></i>
+              </div>
+            }
+            @if (usesGoogleProvider()) {
+              <div class="provider-row connected">
+                <div class="provider-logo">
+                  <i class="fa-brands fa-google"></i>
+                </div>
+                <div>
+                  <strong>Google</strong>
+                  <span>Connected sign-in method</span>
+                </div>
+                <i class="fa-solid fa-circle-check provider-state"></i>
+              </div>
+            }
+            <div class="provider-row">
+              <div class="provider-logo">
+                <i class="fa-regular fa-calendar-plus"></i>
+              </div>
+              <div>
+                <strong>Account Created</strong>
+                <span>{{ creationDate() }}</span>
+              </div>
+            </div>
+            <div class="provider-row">
+              <div class="provider-logo">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+              </div>
+              <div>
+                <strong>Last Sign In</strong>
+                <span>{{ lastSignInDate() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>

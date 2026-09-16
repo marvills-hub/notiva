@@ -1,0 +1,93 @@
+<article class="board-card" tabindex="0" (click)="open()" (keydown.enter)="open()">
+  <div class="board-preview">
+    <app-board-surface [design]="design()" [preview]="false"></app-board-surface>
+
+    <div class="preview-shadow"></div>
+
+    <div class="preview-notes">
+      <div class="mini-note yellow-note">
+        <span class="mini-pin red"></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="mini-note purple-note">
+        <span class="mini-pin violet"></span>
+        <span></span>
+        <span></span>
+      </div>
+
+      <div class="mini-note green-note">
+        <span class="mini-pin blue"></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <div class="preview-top">
+      <span class="design-badge">
+        {{ design().name }}
+      </span>
+
+      <button
+        type="button"
+        class="favorite-button"
+        [class.active]="board().favorite"
+        [title]="board().favorite ? 'Remove from favorites' : 'Add to favorites'"
+        (click)="favorite($event)"
+      >
+        <i [class]="board().favorite ? 'fa-solid fa-star' : 'fa-regular fa-star'"></i>
+      </button>
+    </div>
+
+    <div class="board-count">
+      <i class="fa-regular fa-note-sticky"></i>
+      {{ noteCount() }}
+    </div>
+  </div>
+
+  <div class="board-content">
+    <div class="board-main">
+      <div class="board-title">
+        <div>
+          <strong>{{ board().name }}</strong>
+
+          @if (isDefaultBoard()) {
+            <span class="default-badge"> DEFAULT </span>
+          }
+        </div>
+
+        <span>{{ design().category }}</span>
+      </div>
+
+      <p>
+        {{ board().description || 'No board description' }}
+      </p>
+    </div>
+
+    <div class="board-footer">
+      <span>
+        <i class="fa-solid fa-thumbtack"></i>
+        {{ noteCount() }}
+        {{ noteCount() === 1 ? 'note' : 'notes' }}
+      </span>
+
+      <div class="board-actions">
+        <button type="button" title="Edit board" (click)="edit($event)">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+
+        <button type="button" title="Duplicate board" (click)="duplicate($event)">
+          <i class="fa-regular fa-copy"></i>
+        </button>
+
+        @if (!isDefaultBoard()) {
+          <button type="button" class="delete-action" title="Delete board" (click)="delete($event)">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</article>

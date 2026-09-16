@@ -1,0 +1,527 @@
+<section class="settings-page">
+  <div class="settings-toolbar">
+    <div class="settings-tabs">
+      @for (section of sections; track section.id) {
+        <button
+          type="button"
+          [class.active]="activeSection() === section.id"
+          (click)="setSection(section.id)"
+        >
+          <i [class]="section.icon"></i>
+          <span>{{ section.label }}</span>
+        </button>
+      }
+    </div>
+    <div class="toolbar-spacer"></div>
+    <div class="settings-status">
+      <i class="fa-solid fa-cloud-arrow-up"></i>
+      <strong>Cloud Sync</strong>
+      <span>Synced with your Notiva account</span>
+    </div>
+  </div>
+  <main class="settings-content">
+    <div class="section-heading">
+      <div class="section-icon">
+        <i [class]="activeSectionInfo().icon"></i>
+      </div>
+      <div>
+        <h2>{{ activeSectionInfo().label }}</h2>
+        <p>{{ activeSectionInfo().description }}</p>
+      </div>
+    </div>
+    @switch (activeSection()) {
+      @case ('appearance') {
+        <div class="settings-group">
+          <div class="group-heading">
+            <h3>Interface Density</h3>
+            <p>Choose how much information fits on screen.</p>
+          </div>
+          <div class="choice-grid two">
+            <button
+              type="button"
+              class="choice-card"
+              [class.active]="settings().interfaceDensity === 'comfortable'"
+              (click)="updateDensity('comfortable')"
+            >
+              <div class="choice-icon"><i class="fa-solid fa-border-all"></i></div>
+              <div>
+                <strong>Comfortable</strong>
+                <span>More breathing room around controls.</span>
+              </div>
+              <i class="fa-solid fa-circle-check selected"></i>
+            </button>
+            <button
+              type="button"
+              class="choice-card"
+              [class.active]="settings().interfaceDensity === 'compact'"
+              (click)="updateDensity('compact')"
+            >
+              <div class="choice-icon"><i class="fa-solid fa-table-cells"></i></div>
+              <div>
+                <strong>Compact</strong>
+                <span>Fit more notes and controls on screen.</span>
+              </div>
+              <i class="fa-solid fa-circle-check selected"></i>
+            </button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-person-walking"></i></div>
+              <div>
+                <strong>Reduce Motion</strong>
+                <span>Minimize interface animations and movement.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().reducedMotion"
+                (change)="settingsService.update('reducedMotion', $any($event.target).checked)"
+              />
+              <span></span>
+            </label>
+          </div>
+        </div>
+        <div class="theme-preview">
+          <div class="wood-sample">
+            <i class="fa-solid fa-thumbtack"></i>
+            <span>Notiva</span>
+          </div>
+          <div>
+            <strong>Walnut Desk</strong>
+            <span>Notiva's current premium stationery theme.</span>
+          </div>
+          <span class="current-badge">Current</span>
+        </div>
+      }
+      @case ('notes') {
+        <div class="settings-group">
+          <div class="group-heading">
+            <h3>Default Note Type</h3>
+            <p>Used when you create a new note without selecting a type.</p>
+          </div>
+          <div class="note-type-grid">
+            @for (type of noteTypes; track type.value) {
+              <button
+                type="button"
+                [class.active]="settings().defaultNoteType === type.value"
+                (click)="updateDefaultNoteType(type.value)"
+              >
+                <i [class]="type.icon"></i>
+                <span>{{ type.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+        <div class="settings-group">
+          <label class="field">
+            <span>Default Note Design</span>
+            <select
+              [value]="settings().defaultNoteStyleId"
+              (change)="settingsService.update('defaultNoteStyleId', $any($event.target).value)"
+            >
+              @for (style of noteStyles; track style.id) {
+                <option [value]="style.id">{{ style.name }}</option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span>Default Pin</span>
+            <select
+              [value]="settings().defaultPinId"
+              (change)="settingsService.update('defaultPinId', $any($event.target).value)"
+            >
+              @for (pin of pins; track pin.id) {
+                <option [value]="pin.id">{{ pin.name }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <div class="settings-group">
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon danger"><i class="fa-solid fa-trash"></i></div>
+              <div>
+                <strong>Confirm Permanent Delete</strong>
+                <span>Ask before permanently deleting an archived note.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().confirmPermanentDelete"
+                (change)="
+                  settingsService.update('confirmPermanentDelete', $any($event.target).checked)
+                "
+              />
+              <span></span>
+            </label>
+          </div>
+        </div>
+      }
+      @case ('boards') {
+        <div class="settings-group">
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-border-all"></i></div>
+              <div>
+                <strong>Show Board Grid</strong>
+                <span>Display the positioning grid on visual boards.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().showBoardGrid"
+                (change)="settingsService.update('showBoardGrid', $any($event.target).checked)"
+              />
+              <span></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-magnet"></i></div>
+              <div>
+                <strong>Snap To Grid</strong>
+                <span>Align moved notes to consistent grid positions.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().snapToGrid"
+                (change)="settingsService.update('snapToGrid', $any($event.target).checked)"
+              />
+              <span></span>
+            </label>
+          </div>
+        </div>
+      }
+      @case ('behavior') {
+        <div class="settings-group">
+          <div class="group-heading">
+            <h3>Opening Notes</h3>
+            <p>Choose how notes respond to your mouse.</p>
+          </div>
+          <div class="choice-grid two">
+            <button
+              type="button"
+              class="choice-card"
+              [class.active]="settings().openBehavior === 'single'"
+              (click)="settingsService.update('openBehavior', 'single')"
+            >
+              <div class="choice-icon"><i class="fa-solid fa-arrow-pointer"></i></div>
+              <div>
+                <strong>Single Click</strong>
+                <span>One click opens the note viewer.</span>
+              </div>
+              <i class="fa-solid fa-circle-check selected"></i>
+            </button>
+            <button
+              type="button"
+              class="choice-card"
+              [class.active]="settings().openBehavior === 'double'"
+              (click)="settingsService.update('openBehavior', 'double')"
+            >
+              <div class="choice-icon"><i class="fa-solid fa-computer-mouse"></i></div>
+              <div>
+                <strong>Double Click</strong>
+                <span>Require a double click to open notes.</span>
+              </div>
+              <i class="fa-solid fa-circle-check selected"></i>
+            </button>
+          </div>
+        </div>
+        <div class="settings-group">
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-pen"></i></div>
+              <div>
+                <strong>Double Click To Edit</strong>
+                <span>Open the note editor when a note is double-clicked.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().doubleClickEdit"
+                (change)="settingsService.update('doubleClickEdit', $any($event.target).checked)"
+              />
+              <span></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-layer-group"></i></div>
+              <div>
+                <strong>Bring Note To Front</strong>
+                <span>Move the selected note above overlapping notes.</span>
+              </div>
+            </div>
+            <label class="switch">
+              <input
+                type="checkbox"
+                [checked]="settings().bringToFrontOnSelect"
+                (change)="
+                  settingsService.update('bringToFrontOnSelect', $any($event.target).checked)
+                "
+              />
+              <span></span>
+            </label>
+          </div>
+        </div>
+      }
+      @case ('data') {
+        <div class="settings-group">
+          <div class="group-heading">
+            <h3>Cloud Backup & Restore</h3>
+            <p>
+              Create a portable backup of your Notiva cloud content or restore a previously exported
+              backup.
+            </p>
+          </div>
+          <div class="data-actions">
+            <div class="data-card">
+              <div class="data-icon"><i class="fa-solid fa-file-export"></i></div>
+              <div>
+                <strong>Export Notiva Backup</strong>
+                <span
+                  >Download your boards, notes, calendars, drawing boards, drawing snips and
+                  preferences as one portable JSON backup.</span
+                >
+              </div>
+              <button
+                type="button"
+                [disabled]="exporting() || importing() || settingsService.clearingData()"
+                (click)="exportData()"
+              >
+                <i
+                  [class]="exporting() ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-download'"
+                ></i>
+                {{ exporting() ? 'Exporting...' : 'Export' }}
+              </button>
+            </div>
+            <div class="data-card">
+              <div class="data-icon"><i class="fa-solid fa-file-import"></i></div>
+              <div>
+                <strong>Import Backup</strong>
+                <span
+                  >Restore boards, notes, drawings, drawing images and preferences from a compatible
+                  Notiva backup.</span
+                >
+              </div>
+              <input
+                #backupInput
+                type="file"
+                accept=".json,application/json"
+                hidden
+                (change)="importData($event)"
+              />
+              <button
+                type="button"
+                [disabled]="importing() || exporting() || settingsService.clearingData()"
+                (click)="selectImportFile(backupInput)"
+              >
+                <i [class]="importing() ? 'fa-solid fa-spinner fa-spin' : 'fa-solid fa-upload'"></i>
+                {{ importing() ? 'Importing...' : 'Import' }}
+              </button>
+            </div>
+          </div>
+          @if (exported()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              Your Notiva cloud backup was exported successfully.
+            </div>
+          }
+          @if (exportError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ exportError() }}
+            </div>
+          }
+          @if (imported()) {
+            <div class="status-message success">
+              <i class="fa-solid fa-circle-check"></i>
+              Backup restored successfully. Your imported cloud content is now available in Notiva.
+            </div>
+          }
+          @if (importError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ importError() }}
+            </div>
+          }
+          @if (eraseError()) {
+            <div class="status-message error">
+              <i class="fa-solid fa-circle-exclamation"></i>
+              {{ eraseError() }}
+            </div>
+          }
+        </div>
+        <div class="settings-group danger-zone">
+          <div class="group-heading">
+            <span class="danger-label">Danger Zone</span>
+            <h3>Reset Notiva</h3>
+            <p>Manage your preferences or permanently erase your Notiva content.</p>
+          </div>
+          <div class="danger-action">
+            <div>
+              <strong>Reset Preferences</strong>
+              <span
+                >Restore all settings to the original Notiva defaults without deleting your
+                content.</span
+              >
+            </div>
+            <button
+              type="button"
+              [disabled]="settingsService.clearingData() || exporting() || importing()"
+              (click)="confirmation.set('reset-settings')"
+            >
+              Reset Settings
+            </button>
+          </div>
+          <div class="danger-action">
+            <div>
+              <strong>Erase All Notiva Data</strong>
+              <span
+                >Permanently delete your boards, notes, drawings, uploaded drawing images,
+                preferences and local Notiva data.</span
+              >
+            </div>
+            <button
+              type="button"
+              class="danger-button"
+              [disabled]="settingsService.clearingData() || exporting() || importing()"
+              (click)="confirmation.set('reset-data')"
+            >
+              @if (settingsService.clearingData()) {
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                Erasing...
+              } @else {
+                Erase Everything
+              }
+            </button>
+          </div>
+        </div>
+      }
+      @case ('about') {
+        <div class="about-card">
+          <div class="about-logo">
+            <img src="assets/images/notiva-logo.png" alt="Notiva" />
+          </div>
+          <div class="about-title">
+            <span>Visual Notes & Idea Workspace</span>
+            <h2>Notiva</h2>
+            <p>
+              A flexible visual workspace for notes, ideas, plans and everything worth remembering.
+            </p>
+          </div>
+          <div class="about-details">
+            <div><span>Version</span><strong>0.1.0</strong></div>
+            <div><span>Storage</span><strong>Firebase Cloud</strong></div>
+            <div><span>Backup</span><strong>Portable Cloud Backup</strong></div>
+            <div><span>Platform</span><strong>Web / Desktop Ready</strong></div>
+            <div><span>Framework</span><strong>Angular</strong></div>
+          </div>
+        </div>
+        <div class="settings-group about-info">
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <div>
+                <strong>Cloud Sync</strong>
+                <span
+                  >Your Notiva boards, notes, drawings and preferences are connected to your
+                  account.</span
+                >
+              </div>
+            </div>
+            <span class="current-badge">Active</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-box-archive"></i></div>
+              <div>
+                <strong>Portable Backup</strong>
+                <span>Export your Notiva cloud workspace and restore it when needed.</span>
+              </div>
+            </div>
+            <span class="current-badge">Active</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-copy">
+              <div class="row-icon"><i class="fa-solid fa-mobile-screen"></i></div>
+              <div>
+                <strong>Mobile App</strong>
+                <span>Notiva is planned for desktop, browser and mobile.</span>
+              </div>
+            </div>
+            <span class="coming-soon">Planned</span>
+          </div>
+        </div>
+      }
+    }
+  </main>
+</section>
+@if (confirmation()) {
+  <div
+    class="confirmation-backdrop"
+    (click)="!settingsService.clearingData() && confirmation.set(null)"
+  >
+    <div
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="confirmation-icon" [class.danger]="confirmation() === 'reset-data'">
+        <i
+          [class]="
+            confirmation() === 'reset-data'
+              ? 'fa-solid fa-triangle-exclamation'
+              : 'fa-solid fa-arrow-rotate-left'
+          "
+        ></i>
+      </div>
+      @if (confirmation() === 'reset-data') {
+        <h3>Erase All Notiva Data?</h3>
+        <p>
+          Your boards, notes, drawing boards, drawing images, preferences and local Notiva data will
+          be permanently deleted. Your Notiva account itself will remain active.
+        </p>
+      } @else {
+        <h3>Reset All Settings?</h3>
+        <p>
+          Your preferences will return to their original Notiva defaults. Your boards, notes and
+          drawings will not be deleted.
+        </p>
+      }
+      <div class="confirmation-actions">
+        <button
+          type="button"
+          class="cancel-btn"
+          [disabled]="settingsService.clearingData()"
+          (click)="confirmation.set(null)"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="confirm-btn"
+          [class.danger-btn]="confirmation() === 'reset-data'"
+          [disabled]="settingsService.clearingData()"
+          (click)="confirmAction()"
+        >
+          @if (settingsService.clearingData()) {
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            Erasing...
+          } @else {
+            {{ confirmation() === 'reset-data' ? 'Erase Everything' : 'Reset Settings' }}
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
