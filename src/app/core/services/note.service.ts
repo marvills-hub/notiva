@@ -21,12 +21,15 @@ import {
   NoteType,
 } from '../models/note.model';
 import { NoteStyleService } from './note-style.service';
+import { NotificationService } from './notification.service';
+
 @Injectable({
   providedIn: 'root',
 })
 export class NoteService {
   private readonly storageKey = 'notiva-notes';
   private readonly noteStyleService = inject(NoteStyleService);
+  private readonly notificationService = inject(NotificationService);
   private readonly allNotesSignal = signal<NoteModel[]>([]);
   private readonly loadingSignal = signal(true);
   private readonly initializedSignal = signal(false);
@@ -39,11 +42,13 @@ export class NoteService {
   );
   readonly archivedNotes = computed(() => this.allNotesSignal().filter((note) => note.archived));
   private currentUid: string | null = null;
+
   constructor() {
     onAuthStateChanged(firebaseAuth, (user) => {
       void this.handleAuthState(user);
     });
   }
+
   async reload(): Promise<void> {
     const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
     if (!uid) {
@@ -52,15 +57,19 @@ export class NoteService {
     }
     await this.loadCloudNotes(uid, false);
   }
+
   getNoteById(id: string): NoteModel | undefined {
     return this.allNotesSignal().find((note) => note.id === id);
   }
+
   getNotesByBoard(boardId: string): NoteModel[] {
     return this.notes().filter((note) => note.boardId === boardId);
   }
+
   getBoardNoteCount(boardId: string): number {
     return this.getNotesByBoard(boardId).length;
   }
+
   getBoardTags(boardId: string): string[] {
     return Array.from(
       new Set(
@@ -70,24 +79,29 @@ export class NoteService {
       ),
     ).sort((a, b) => a.localeCompare(b));
   }
+
   getHighestZIndex(): number {
     return this.notes().reduce((highest, note) => Math.max(highest, note.zIndex), 0);
   }
+
   searchActiveNotes(query: string): NoteModel[] {
     const value = query.trim().toLowerCase();
     if (!value) return [];
     return this.notes().filter((note) => this.getSearchableText(note).includes(value));
   }
+
   searchFavoriteNotes(query: string): NoteModel[] {
     const value = query.trim().toLowerCase();
     if (!value) return this.favorites();
     return this.favorites().filter((note) => this.getSearchableText(note).includes(value));
   }
+
   searchArchivedNotes(query: string): NoteModel[] {
     const value = query.trim().toLowerCase();
     if (!value) return this.archivedNotes();
     return this.archivedNotes().filter((note) => this.getSearchableText(note).includes(value));
   }
+
   createNote(
     type: NoteType = 'text',
     color: NoteColor = 'yellow',
@@ -128,6 +142,7 @@ export class NoteService {
     void this.saveNote(note);
     return note;
   }
+
   updateNote(id: string, updates: Partial<NoteModel>): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -143,6 +158,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   updateCalendar(id: string, updates: Partial<CalendarModel>): void {
     const note = this.getNoteById(id);
     if (!note || note.type !== 'calendar' || !note.calendar) return;
@@ -157,6 +173,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   updatePosition(id: string, x: number, y: number): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -169,6 +186,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   updateSize(id: string, width: number, height: number): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -181,6 +199,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   bringToFront(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -191,6 +210,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   toggleFavorite(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -202,6 +222,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   setFavorite(id: string, favorite: boolean): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -213,6 +234,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   togglePinned(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -224,6 +246,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   toggleChecklistItem(noteId: string, itemId: string): void {
     const note = this.getNoteById(noteId);
     if (!note) return;
@@ -242,6 +265,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   archiveNote(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -253,6 +277,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   restoreNote(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
@@ -264,25 +289,32 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   deleteNote(id: string): void {
     const note = this.getNoteById(id);
     if (!note) return;
     this.allNotesSignal.update((notes) => notes.filter((item) => item.id !== id));
+    void this.notificationService.cancelReminder(note.id);
     void this.deleteCloudNote(note);
   }
+
   deleteArchivedNotes(): void {
     const archived = this.archivedNotes();
     if (!archived.length) return;
     const ids = new Set(archived.map((note) => note.id));
     this.allNotesSignal.update((notes) => notes.filter((note) => !ids.has(note.id)));
+    void this.notificationService.cancelReminders(archived);
     void this.deleteCloudNotes(archived);
   }
+
   deleteNotesByBoard(boardId: string): void {
     const boardNotes = this.allNotesSignal().filter((note) => note.boardId === boardId);
     if (!boardNotes.length) return;
     this.allNotesSignal.update((notes) => notes.filter((note) => note.boardId !== boardId));
+    void this.notificationService.cancelReminders(boardNotes);
     void this.deleteCloudNotes(boardNotes);
   }
+
   duplicateNote(id: string): NoteModel | null {
     const original = this.getNoteById(id);
     if (!original) return null;
@@ -291,6 +323,7 @@ export class NoteService {
     void this.saveNote(duplicate);
     return duplicate;
   }
+
   duplicateNotesToBoard(sourceBoardId: string, targetBoardId: string): void {
     const sourceNotes = this.getNotesByBoard(sourceBoardId);
     if (!sourceNotes.length) return;
@@ -303,6 +336,7 @@ export class NoteService {
     this.allNotesSignal.update((notes) => [...notes, ...duplicates]);
     void this.saveNotes(duplicates);
   }
+
   addCalendarEvent(
     noteId: string,
     title: string,
@@ -330,6 +364,7 @@ export class NoteService {
     void this.saveNote(updated);
     return event;
   }
+
   updateCalendarEvent(
     noteId: string,
     eventId: string,
@@ -356,6 +391,7 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   deleteCalendarEvent(noteId: string, eventId: string): void {
     const note = this.getNoteById(noteId);
     if (!note || note.type !== 'calendar' || !note.calendar) return;
@@ -370,11 +406,13 @@ export class NoteService {
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
   }
+
   getCalendarEventsForDate(noteId: string, date: string): CalendarEventModel[] {
     const note = this.getNoteById(noteId);
     if (!note?.calendar) return [];
     return note.calendar.events.filter((event) => event.date === date);
   }
+
   private async handleAuthState(user: User | null): Promise<void> {
     this.loadingSignal.set(true);
     this.initializedSignal.set(false);
@@ -396,6 +434,7 @@ export class NoteService {
       this.initializedSignal.set(true);
     }
   }
+
   private async loadCloudNotes(uid: string, migrateLocal: boolean): Promise<void> {
     const boardsSnapshot = await getDocs(collection(firestore, 'users', uid, 'boards'));
     const cloudNotes: NoteModel[] = [];
@@ -414,8 +453,10 @@ export class NoteService {
       });
     }
     if (cloudNotes.length) {
-      this.allNotesSignal.set(this.migrateStylesInMemory(cloudNotes));
+      const migrated = this.migrateStylesInMemory(cloudNotes);
+      this.allNotesSignal.set(migrated);
       localStorage.removeItem(this.storageKey);
+      void this.notificationService.syncReminders(migrated);
       return;
     }
     if (migrateLocal) {
@@ -425,6 +466,7 @@ export class NoteService {
         this.allNotesSignal.set(migrated);
         await this.saveNotes(migrated);
         localStorage.removeItem(this.storageKey);
+        void this.notificationService.syncReminders(migrated);
         return;
       }
     }
@@ -433,12 +475,15 @@ export class NoteService {
     await this.saveNotes(defaults);
     localStorage.removeItem(this.storageKey);
   }
+
   private replaceLocalNote(updated: NoteModel): void {
     this.allNotesSignal.update((notes) =>
       notes.map((note) => (note.id === updated.id ? updated : note)),
     );
   }
+
   private async saveNote(note: NoteModel): Promise<void> {
+    void this.notificationService.syncReminder(note);
     const uid = this.currentUid;
     if (!uid) return;
     try {
@@ -450,6 +495,7 @@ export class NoteService {
       console.error(`Failed to save note "${note.id}".`, error);
     }
   }
+
   private async saveNotes(notes: NoteModel[]): Promise<void> {
     const uid = this.currentUid;
     if (!uid || !notes.length) return;
@@ -464,6 +510,7 @@ export class NoteService {
       await batch.commit();
     }
   }
+
   private async deleteCloudNote(note: NoteModel): Promise<void> {
     const uid = this.currentUid;
     if (!uid) return;
@@ -473,6 +520,7 @@ export class NoteService {
       console.error(`Failed to delete note "${note.id}".`, error);
     }
   }
+
   private async deleteCloudNotes(notes: NoteModel[]): Promise<void> {
     const uid = this.currentUid;
     if (!uid || !notes.length) return;
@@ -488,6 +536,7 @@ export class NoteService {
       console.error('Failed to delete notes from Firestore.', error);
     }
   }
+
   private toFirestore(note: NoteModel): Record<string, unknown> {
     return this.removeUndefined({
       ...note,
@@ -495,6 +544,7 @@ export class NoteService {
       updatedAt: Timestamp.fromDate(note.updatedAt),
     });
   }
+
   private removeUndefined(value: Record<string, unknown>): Record<string, unknown> {
     return Object.fromEntries(
       Object.entries(value)
@@ -522,6 +572,7 @@ export class NoteService {
         }),
     );
   }
+
   private cloneNote(note: NoteModel, boardId: string, offset: number): NoteModel {
     return {
       ...note,
@@ -550,6 +601,7 @@ export class NoteService {
       updatedAt: new Date(),
     };
   }
+
   private getSearchableText(note: NoteModel): string {
     const checklistText = note.checklistItems.map((item) => item.text).join(' ');
     const calendarText = note.calendar?.events.map((event) => event.title).join(' ') || '';
@@ -567,6 +619,7 @@ export class NoteService {
       .join(' ')
       .toLowerCase();
   }
+
   private getDefaultStyleForType(type: NoteType): string {
     switch (type) {
       case 'checklist':
@@ -583,6 +636,7 @@ export class NoteService {
         return 'classic-yellow';
     }
   }
+
   private getDefaultTitle(type: NoteType): string {
     switch (type) {
       case 'checklist':
@@ -599,6 +653,7 @@ export class NoteService {
         return 'New Note';
     }
   }
+
   private createCalendar(): CalendarModel {
     const now = new Date();
     return {
@@ -610,6 +665,7 @@ export class NoteService {
       events: [],
     };
   }
+
   private createChecklistItem(text: string): ChecklistItemModel {
     return {
       id: crypto.randomUUID(),
@@ -617,12 +673,14 @@ export class NoteService {
       completed: false,
     };
   }
+
   private migrateStylesInMemory(notes: NoteModel[]): NoteModel[] {
     return notes.map((note) => ({
       ...note,
       styleId: this.noteStyleService.resolveStyleId(note.styleId),
     }));
   }
+
   private loadLocalNotes(): NoteModel[] {
     const stored = localStorage.getItem(this.storageKey);
     if (!stored) return [];
@@ -634,6 +692,7 @@ export class NoteService {
       return [];
     }
   }
+
   private normalizeDate(value: unknown): Date {
     if (value instanceof Date) return value;
     if (value instanceof Timestamp) return value.toDate();
@@ -648,6 +707,7 @@ export class NoteService {
     const date = new Date(value as string | number);
     return Number.isNaN(date.getTime()) ? new Date() : date;
   }
+
   private normalizeNote(note: Partial<NoteModel>): NoteModel {
     const type = note.type || 'text';
     const checklistItems = Array.isArray(note.checklistItems)
@@ -662,6 +722,7 @@ export class NoteService {
             .filter(Boolean)
             .map((text) => this.createChecklistItem(text))
         : [];
+
     const calendar =
       type === 'calendar'
         ? {
@@ -686,6 +747,7 @@ export class NoteService {
               : [],
           }
         : undefined;
+
     return {
       id: note.id || crypto.randomUUID(),
       boardId: note.boardId || DEFAULT_BOARD_ID,
@@ -718,6 +780,7 @@ export class NoteService {
       updatedAt: this.normalizeDate(note.updatedAt),
     };
   }
+
   private getDefaultNotes(): NoteModel[] {
     const now = new Date();
     return [

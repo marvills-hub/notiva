@@ -1,16 +1,31 @@
 <div class="app-shell">
   <div class="app-workspace">
-    <app-sidebar [collapsed]="sidebarCollapsed()"></app-sidebar>
+    <div
+      class="mobile-sidebar-backdrop"
+      [class.visible]="mobileSidebarOpen()"
+      (click)="closeMobileSidebar()"
+    ></div>
+
+    <div class="sidebar-container" [class.mobile-open]="mobileSidebarOpen()">
+      <app-sidebar
+        [collapsed]="sidebarCollapsed()"
+        [mobileOpen]="mobileSidebarOpen()"
+        (closeMobile)="closeMobileSidebar()"
+      ></app-sidebar>
+    </div>
+
     <div class="app-main">
       <app-topbar
         [sidebarCollapsed]="sidebarCollapsed()"
         (sidebarToggle)="toggleSidebar()"
       ></app-topbar>
+
       <main class="app-content">
         <router-outlet></router-outlet>
       </main>
     </div>
   </div>
+
   <footer class="app-footer">
     <span>Developed by</span>
     <a href="https://marvills.web.app/" target="_blank" rel="noopener noreferrer">

@@ -20,6 +20,7 @@
   font-family: var(--font-ui);
 }
 .app-workspace {
+  position: relative;
   display: flex;
   flex: 1;
   width: 100%;
@@ -27,11 +28,22 @@
   min-height: 0;
   overflow: hidden;
 }
+.sidebar-container {
+  position: relative;
+  z-index: 120;
+  display: flex;
+  flex: 0 0 auto;
+  height: 100%;
+}
+.mobile-sidebar-backdrop {
+  display: none;
+}
 .app-main {
   position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
+  width: 0;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -58,6 +70,7 @@
   position: relative;
   z-index: auto;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: auto;
   background:
@@ -106,6 +119,7 @@
   line-height: 1;
   letter-spacing: 0.2px;
   white-space: nowrap;
+
   a {
     display: inline-flex;
     align-items: center;
@@ -116,6 +130,7 @@
     transition:
       color 0.18s ease,
       transform 0.18s ease;
+
     i {
       font-size: 8px;
       opacity: 0.72;
@@ -123,13 +138,73 @@
         opacity 0.18s ease,
         transform 0.18s ease;
     }
+
     &:hover {
       color: var(--cream);
       transform: translateY(-1px);
+
       i {
         opacity: 1;
         transform: translate(1px, -1px);
       }
     }
+  }
+}
+
+@media (max-width: 800px) {
+  .sidebar-container {
+    position: fixed;
+    top: 0;
+    bottom: var(--app-footer-height);
+    left: 0;
+    z-index: 1001;
+    width: 250px;
+    height: auto;
+    transform: translateX(-105%);
+    transition: transform 0.24s ease;
+    pointer-events: none;
+  }
+
+  .sidebar-container.mobile-open {
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  .mobile-sidebar-backdrop {
+    position: fixed;
+    inset: 0 0 var(--app-footer-height);
+    z-index: 1000;
+    display: block;
+    background: rgba(18, 11, 7, 0.55);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    backdrop-filter: blur(2px);
+    transition:
+      opacity 0.22s ease,
+      visibility 0.22s ease;
+  }
+
+  .mobile-sidebar-backdrop.visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .app-main {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar-container {
+    width: min(280px, 82vw);
+  }
+
+  .app-footer {
+    gap: 3px;
+    padding: 0 6px;
+    font-size: 8px;
   }
 }

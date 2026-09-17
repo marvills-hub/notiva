@@ -32,6 +32,7 @@ export interface NoteModel {
   id: string;
   boardId: string;
   title: string;
+  titleHtml?: string;
   content: string;
   type: NoteType;
   color: NoteColor;

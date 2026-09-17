@@ -1,1 +1,71 @@
 <router-outlet />
+
+@if (reminder(); as note) {
+  <div class="reminder-overlay">
+    <div class="reminder-popup" role="dialog" aria-modal="true" aria-label="Reminder">
+      <div class="reminder-glow"></div>
+
+      <header class="reminder-header">
+        <div class="reminder-icon">
+          <i [class]="reminderTypeIcon(note)"></i>
+        </div>
+
+        <div class="reminder-heading">
+          <span>NOTIVA REMINDER</span>
+          <small>It's time for this note</small>
+        </div>
+
+        <button
+          type="button"
+          class="reminder-close"
+          title="Dismiss reminder"
+          aria-label="Dismiss reminder"
+          (click)="dismissReminder()"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+
+      <div class="reminder-body">
+        <div class="reminder-pin">
+          <span></span>
+        </div>
+
+        <div class="reminder-paper">
+          <div class="reminder-paper-type">
+            <i class="fa-regular fa-clock"></i>
+            <span>Reminder</span>
+          </div>
+
+          <h2>{{ note.title || 'Reminder' }}</h2>
+
+          <p>{{ reminderContent() }}</p>
+
+          @if (note.reminderAt) {
+            <div class="reminder-date">
+              <i class="fa-regular fa-calendar"></i>
+              <span>{{ note.reminderAt | date: 'MMM d, y · h:mm a' }}</span>
+            </div>
+          }
+
+          @if (note.tags.length) {
+            <div class="reminder-tags">
+              @for (tag of note.tags; track tag) {
+                <span>#{{ tag }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <footer class="reminder-actions">
+        <button type="button" class="dismiss-btn" (click)="dismissReminder()">Dismiss</button>
+
+        <button type="button" class="open-btn" (click)="openReminderPopup()">
+          <span>Open note</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </footer>
+    </div>
+  </div>
+}

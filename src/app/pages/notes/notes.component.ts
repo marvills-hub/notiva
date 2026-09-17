@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  HostListener,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DEFAULT_BOARD_ID } from '../../core/models/board.model';
@@ -63,6 +72,7 @@ export class NotesComponent {
   readonly boardDesignPickerOpen = signal(false);
   readonly viewingNote = signal<NoteModel | null>(null);
   readonly newNoteMenuOpen = signal(false);
+  readonly mobileMenuOpen = signal(false);
   readonly selectedNoteIds = signal<Set<string>>(new Set<string>());
   readonly selectedNotes = computed(() =>
     this.notes().filter((note) => this.selectedNoteIds().has(note.id)),
@@ -184,6 +194,7 @@ export class NotesComponent {
       this.creatingNote.set(false);
       this.boardDesignPickerOpen.set(false);
       this.newNoteMenuOpen.set(false);
+      this.mobileMenuOpen.set(false);
       this.clearSelection();
       this.resetGroupDrag();
     });
@@ -208,16 +219,38 @@ export class NotesComponent {
         return;
       }
       this.handledNewNoteRequest = request;
+      this.mobileMenuOpen.set(false);
       this.newNoteMenuOpen.set(true);
     });
   }
   toggleNewNoteMenu(event: MouseEvent): void {
     event.preventDefault();
     event.stopPropagation();
+    this.mobileMenuOpen.set(false);
     this.newNoteMenuOpen.update((open) => !open);
   }
   closeNewNoteMenu(): void {
     this.newNoteMenuOpen.set(false);
+  }
+  toggleMobileMenu(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.newNoteMenuOpen.set(false);
+    this.mobileMenuOpen.update((open) => !open);
+  }
+  closeMobileMenu(): void {
+    this.mobileMenuOpen.set(false);
+  }
+  selectMobileType(type: 'all' | NoteType): void {
+    this.selectedType.set(type);
+  }
+  openMobileDesignPicker(): void {
+    this.mobileMenuOpen.set(false);
+    this.openBoardDesignPicker();
+  }
+  resetMobileView(): void {
+    this.resetView();
+    this.mobileMenuOpen.set(false);
   }
   createNoteFromMenu(type: NoteType, color: NoteColor): void {
     this.newNoteMenuOpen.set(false);
@@ -377,6 +410,7 @@ export class NotesComponent {
     this.openEditor(note);
   }
   newNote(): void {
+    this.mobileMenuOpen.set(false);
     this.newNoteMenuOpen.set(true);
   }
   createNote(type: NoteType, color: NoteColor): void {
@@ -501,6 +535,8 @@ export class NotesComponent {
     this.noteService.updateNote(event.id, { secondaryPinId: event.pinId });
   }
   openBoardDesignPicker(): void {
+    this.newNoteMenuOpen.set(false);
+    this.mobileMenuOpen.set(false);
     this.boardDesignPickerOpen.set(true);
   }
   closeBoardDesignPicker(): void {
@@ -559,6 +595,7 @@ export class NotesComponent {
     event.preventDefault();
     this.clearSelection();
     this.newNoteMenuOpen.set(false);
+    this.mobileMenuOpen.set(false);
     this.panning = true;
     this.panPointerId = event.pointerId;
     this.panStartPointerX = event.clientX;

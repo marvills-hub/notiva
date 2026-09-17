@@ -17,6 +17,7 @@ export class ArchiveComponent {
   private readonly boardService = inject(BoardService);
   readonly search = signal('');
   readonly typeFilter = signal<ArchiveTypeFilter>('all');
+  readonly mobileMenuOpen = signal(false);
   readonly deleteTarget = signal<NoteModel | null>(null);
   readonly types: { value: ArchiveTypeFilter; label: string; icon: string }[] = [
     { value: 'all', label: 'All', icon: 'fa-solid fa-layer-group' },
@@ -30,21 +31,36 @@ export class ArchiveComponent {
     const query = this.search().trim().toLowerCase();
     const type = this.typeFilter();
     return this.noteService.archivedNotes().filter((note) => {
-      if (type !== 'all' && note.type !== type) {
-        return false;
-      }
-      if (!query) {
-        return true;
-      }
+      if (type !== 'all' && note.type !== type) return false;
+      if (!query) return true;
       return this.getSearchableText(note).includes(query);
     });
   });
   readonly totalArchived = computed(() => this.noteService.archivedNotes().length);
 
+  toggleMobileMenu(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.mobileMenuOpen.update((open) => !open);
+  }
+
+  closeMobileMenu(): void {
+    this.mobileMenuOpen.set(false);
+  }
+
+  selectMobileType(type: ArchiveTypeFilter): void {
+    this.typeFilter.set(type);
+    this.mobileMenuOpen.set(false);
+  }
+
+  clearFilters(): void {
+    this.search.set('');
+    this.typeFilter.set('all');
+    this.mobileMenuOpen.set(false);
+  }
+
   getBoardName(boardId: string): string {
-    if (boardId === DEFAULT_BOARD_ID) {
-      return 'Main Notes';
-    }
+    if (boardId === DEFAULT_BOARD_ID) return 'Main Notes';
     return this.boardService.getBoardById(boardId)?.name || 'Deleted Board';
   }
 
@@ -64,10 +80,12 @@ export class ArchiveComponent {
   }
 
   restoreNote(note: NoteModel): void {
+    this.mobileMenuOpen.set(false);
     this.noteService.restoreNote(note.id);
   }
 
   requestDelete(note: NoteModel): void {
+    this.mobileMenuOpen.set(false);
     this.deleteTarget.set(note);
   }
 
@@ -77,9 +95,7 @@ export class ArchiveComponent {
 
   confirmDelete(): void {
     const note = this.deleteTarget();
-    if (!note) {
-      return;
-    }
+    if (!note) return;
     this.noteService.deleteNote(note.id);
     this.deleteTarget.set(null);
   }

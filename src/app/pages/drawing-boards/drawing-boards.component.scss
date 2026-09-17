@@ -23,8 +23,9 @@
   top: 0;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 18px 22px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--page-dark-border-soft);
   background: color-mix(in srgb, var(--page-dark-toolbar-start) 96%, transparent);
   box-shadow: var(--page-dark-shadow-sm);
@@ -33,17 +34,17 @@
 .drawing-boards-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 9px;
   min-width: 0;
   .page-icon {
     display: grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 42px;
-    height: 42px;
+    width: 34px;
+    height: 34px;
     color: var(--page-dark-text);
     border: 1px solid var(--page-dark-border-strong);
-    border-radius: 10px;
+    border-radius: 8px;
     background:
       linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent), var(--page-dark-card-accent);
     box-shadow:
@@ -56,28 +57,29 @@
   h1 {
     margin: 0;
     color: var(--page-dark-text-primary);
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 650;
-    line-height: 1.2;
+    line-height: 1.15;
   }
   p {
-    margin: 4px 0 0;
+    margin: 2px 0 0;
     color: var(--page-dark-text-muted);
-    font-size: 11px;
-    line-height: 1.4;
+    font-size: 9px;
+    line-height: 1.2;
   }
 }
 .create-board-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 38px;
+  gap: 6px;
+  height: 34px;
+  min-height: 34px;
   margin-left: auto;
-  padding: 0 14px;
+  padding: 0 11px;
   color: var(--page-dark-text);
   font: inherit;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   border: 1px solid var(--page-dark-accent);
   border-radius: 8px;
@@ -1181,7 +1183,8 @@
 }
 @media (max-width: 900px) {
   .drawing-boards-header {
-    padding: 14px 15px;
+    min-height: 48px;
+    padding: 7px 8px;
   }
   .drawing-board-grid {
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -1199,15 +1202,28 @@
   }
 }
 @media (max-width: 620px) {
+  .drawing-boards-header {
+    gap: 6px;
+    min-height: 46px;
+    padding: 6px 8px;
+  }
   .drawing-boards-title {
     .page-icon {
       display: none;
+    }
+    h1 {
+      font-size: 14px;
     }
     p {
       display: none;
     }
   }
   .create-board-btn {
+    width: 33px;
+    min-width: 33px;
+    height: 33px;
+    min-height: 33px;
+    padding: 0;
     span {
       display: none;
     }

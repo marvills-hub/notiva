@@ -1,22 +1,24 @@
 <section class="favorites-page">
   <div class="favorites-toolbar">
-    <div class="type-filters">
-      @for (type of types; track type.value) {
-        <button
-          type="button"
-          [class.active]="typeFilter() === type.value"
-          (click)="typeFilter.set(type.value)"
-        >
-          <i [class]="type.icon"></i>
-          <span>{{ type.label }}</span>
-        </button>
-      }
-    </div>
-    <div class="toolbar-divider"></div>
-    <div class="favorite-count" title="Total favorite notes">
-      <i class="fa-solid fa-star"></i>
-      <strong>{{ totalFavorites() }}</strong>
-      <span>Favorites</span>
+    <div class="desktop-favorite-tools">
+      <div class="type-filters">
+        @for (type of types; track type.value) {
+          <button
+            type="button"
+            [class.active]="typeFilter() === type.value"
+            (click)="typeFilter.set(type.value)"
+          >
+            <i [class]="type.icon"></i>
+            <span>{{ type.label }}</span>
+          </button>
+        }
+      </div>
+      <div class="toolbar-divider"></div>
+      <div class="favorite-count" title="Total favorite notes">
+        <i class="fa-solid fa-star"></i>
+        <strong>{{ totalFavorites() }}</strong>
+        <span>Favorites</span>
+      </div>
     </div>
     <div class="toolbar-spacer"></div>
     <div class="page-search">
@@ -31,6 +33,71 @@
         <button type="button" title="Clear search" (click)="clearSearch()">
           <i class="fa-solid fa-xmark"></i>
         </button>
+      }
+    </div>
+    <div class="mobile-tools-menu">
+      <button
+        type="button"
+        class="mobile-tools-trigger"
+        title="Favorite filters"
+        aria-label="Favorite filters"
+        [class.active]="mobileMenuOpen()"
+        (click)="toggleMobileMenu($event)"
+      >
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      @if (mobileMenuOpen()) {
+        <div class="mobile-tools-dropdown">
+          <div class="mobile-menu-header">
+            <div>
+              <span>FAVORITES</span>
+              <strong>Filter Notes</strong>
+            </div>
+            <button
+              type="button"
+              title="Close"
+              aria-label="Close favorite filters"
+              (click)="closeMobileMenu()"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">NOTE TYPE</span>
+            <div class="mobile-type-grid">
+              @for (type of types; track type.value) {
+                <button
+                  type="button"
+                  [class.active]="typeFilter() === type.value"
+                  (click)="selectMobileType(type.value)"
+                >
+                  <i [class]="type.icon"></i>
+                  <span>{{ type.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">OVERVIEW</span>
+            <div class="mobile-favorite-stat">
+              <span class="mobile-stat-icon">
+                <i class="fa-solid fa-star"></i>
+              </span>
+              <div>
+                <strong>{{ totalFavorites() }}</strong>
+                <span>Favorite Notes</span>
+              </div>
+            </div>
+          </div>
+          @if (search() || typeFilter() !== 'all') {
+            <div class="mobile-menu-footer">
+              <button type="button" (click)="clearFilters()">
+                <i class="fa-solid fa-filter-circle-xmark"></i>
+                Clear Filters
+              </button>
+            </div>
+          }
+        </div>
       }
     </div>
   </div>
@@ -124,9 +191,7 @@
         @if (search() || typeFilter() !== 'all') {
           <h3>No Matching Favorites</h3>
           <p>Try another search or choose a different note type.</p>
-          <button type="button" (click)="search.set(''); typeFilter.set('all')">
-            Clear Filters
-          </button>
+          <button type="button" (click)="clearFilters()">Clear Filters</button>
         } @else {
           <h3>No Favorite Notes</h3>
           <p>Star notes from any board and they will appear here.</p>

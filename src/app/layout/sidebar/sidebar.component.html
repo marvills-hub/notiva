@@ -1,38 +1,61 @@
-<aside class="sidebar" [class.collapsed]="collapsed()">
+<aside class="sidebar" [class.collapsed]="collapsed()" [class.mobile-open]="mobileOpen()">
   <div class="sidebar-brand">
     <div class="brand-logo">
       <img src="assets/images/notiva-logo.png" alt="Notiva" />
     </div>
+
     <div class="brand-text">
       <strong>Notiva</strong>
       <span>Visual Notes</span>
     </div>
+
+    <button
+      type="button"
+      class="mobile-sidebar-close"
+      title="Close sidebar"
+      aria-label="Close sidebar"
+      (click)="close()"
+    >
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
+
   <nav class="sidebar-nav">
-    <a routerLink="/notes" routerLinkActive="active" title="Notes">
+    <a routerLink="/notes" routerLinkActive="active" title="Notes" (click)="close()">
       <i class="fa-regular fa-note-sticky"></i>
       <span>Notes</span>
     </a>
-    <a routerLink="/boards" routerLinkActive="active" title="Boards">
+
+    <a routerLink="/boards" routerLinkActive="active" title="Boards" (click)="close()">
       <i class="fa-solid fa-table-columns"></i>
       <span>Boards</span>
     </a>
-    <a routerLink="/drawing-boards" routerLinkActive="active" title="Drawing Boards">
+
+    <a
+      routerLink="/drawing-boards"
+      routerLinkActive="active"
+      title="Drawing Boards"
+      (click)="close()"
+    >
       <i class="fa-solid fa-pen-ruler"></i>
       <span>Drawing Boards</span>
     </a>
-    <a routerLink="/favorites" routerLinkActive="active" title="Favorites">
+
+    <a routerLink="/favorites" routerLinkActive="active" title="Favorites" (click)="close()">
       <i class="fa-regular fa-star"></i>
       <span>Favorites</span>
     </a>
-    <a routerLink="/archive" routerLinkActive="active" title="Archive">
+
+    <a routerLink="/archive" routerLinkActive="active" title="Archive" (click)="close()">
       <i class="fa-solid fa-box-archive"></i>
       <span>Archive</span>
     </a>
   </nav>
+
   <div class="sidebar-spacer"></div>
+
   <nav class="sidebar-nav bottom">
-    <a routerLink="/settings" routerLinkActive="active" title="Settings">
+    <a routerLink="/settings" routerLinkActive="active" title="Settings" (click)="close()">
       <i class="fa-solid fa-gear"></i>
       <span>Settings</span>
     </a>

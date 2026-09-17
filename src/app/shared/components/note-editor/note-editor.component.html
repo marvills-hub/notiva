@@ -1,317 +1,461 @@
 <div class="editor-backdrop">
   <section class="note-editor">
-    <header class="editor-header">
-      <div>
-        <span class="eyebrow">{{ creating() ? 'NEW NOTIVA NOTE' : 'NOTIVA NOTE' }}</span>
-        <h2>{{ creating() ? 'Create Note' : 'Edit Note' }}</h2>
+    <header class="editor-toolbar">
+      <div class="toolbar-left">
+        <button type="button" class="tool-btn close-btn" title="Close" (click)="closed.emit()">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+
+        <div class="editor-identity">
+          <span>{{ creating() ? 'NEW NOTE' : 'EDITING' }}</span>
+          <strong>{{ title() || noteTypeLabel() }}</strong>
+        </div>
       </div>
-      <button type="button" class="close-btn" title="Close" (click)="closed.emit()">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </header>
-    <div class="editor-layout">
-      <div class="editor-main">
-        @if (creating()) {
-          <div class="field">
-            <label>Note Type</label>
-            <div class="type-options">
-              @for (item of noteTypes; track item.type) {
-                <button
-                  type="button"
-                  [class.active]="type() === item.type"
-                  (click)="selectType(item.type)"
-                >
-                  <i [class]="item.icon"></i>
-                  {{ item.label }}
-                </button>
-              }
-            </div>
-          </div>
-        } @else {
-          <div class="field">
-            <label>Note Type</label>
-            <div class="type-options">
-              <button type="button" class="active">
-                <i [class]="noteTypeIcon()"></i>
-                {{ noteTypeLabel() }}
-              </button>
-            </div>
+
+      <div class="toolbar-actions">
+        @if (supportsRichText()) {
+          <div class="wysiwyg-tools">
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="boldActive()"
+              title="Bold"
+              (pointerdown)="formatText($event, 'bold')"
+            >
+              <i class="fa-solid fa-bold"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="italicActive()"
+              title="Italic"
+              (pointerdown)="formatText($event, 'italic')"
+            >
+              <i class="fa-solid fa-italic"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="underlineActive()"
+              title="Underline"
+              (pointerdown)="formatText($event, 'underline')"
+            >
+              <i class="fa-solid fa-underline"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="strikeActive()"
+              title="Strikethrough"
+              (pointerdown)="formatText($event, 'strikeThrough')"
+            >
+              <i class="fa-solid fa-strikethrough"></i>
+            </button>
+
+            <span class="wysiwyg-separator"></span>
+
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="unorderedListActive()"
+              title="Bulleted list"
+              (pointerdown)="formatText($event, 'insertUnorderedList')"
+            >
+              <i class="fa-solid fa-list-ul"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="orderedListActive()"
+              title="Numbered list"
+              (pointerdown)="formatText($event, 'insertOrderedList')"
+            >
+              <i class="fa-solid fa-list-ol"></i>
+            </button>
+
+            <span class="wysiwyg-separator"></span>
+
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="alignLeftActive()"
+              title="Align left"
+              (pointerdown)="formatText($event, 'justifyLeft')"
+            >
+              <i class="fa-solid fa-align-left"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="alignCenterActive()"
+              title="Align center"
+              (pointerdown)="formatText($event, 'justifyCenter')"
+            >
+              <i class="fa-solid fa-align-center"></i>
+            </button>
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              [class.active]="alignRightActive()"
+              title="Align right"
+              (pointerdown)="formatText($event, 'justifyRight')"
+            >
+              <i class="fa-solid fa-align-right"></i>
+            </button>
+
+            <span class="wysiwyg-separator"></span>
+
+            <button
+              type="button"
+              class="wysiwyg-btn"
+              title="Clear formatting"
+              (pointerdown)="formatText($event, 'removeFormat')"
+            >
+              <i class="fa-solid fa-eraser"></i>
+            </button>
           </div>
         }
-        <div class="field">
-          <label for="note-title">Title</label>
-          <input
-            id="note-title"
-            type="text"
-            placeholder="Note title..."
-            [ngModel]="title()"
-            (ngModelChange)="title.set($event)"
-          />
-        </div>
-        @switch (type()) {
-          @case ('checklist') {
-            <div class="field">
-              <div class="field-heading">
-                <label>Checklist</label>
-                <button type="button" class="small-action" (click)="addChecklistItem()">
-                  <i class="fa-solid fa-plus"></i>
-                  Add Item
-                </button>
-              </div>
-              <div class="checklist-editor">
-                @for (item of checklistItems(); track item.id) {
-                  <div class="checklist-row">
-                    <button
-                      type="button"
-                      class="check-toggle"
-                      [class.completed]="item.completed"
-                      (click)="toggleChecklistItem(item.id)"
-                    >
-                      @if (item.completed) {
-                        <i class="fa-solid fa-check"></i>
-                      }
-                    </button>
-                    <input
-                      type="text"
-                      placeholder="Checklist item..."
-                      [ngModel]="item.text"
-                      (ngModelChange)="updateChecklistItem(item.id, $event)"
-                    />
-                    <button
-                      type="button"
-                      class="remove-btn"
-                      title="Remove item"
-                      (click)="removeChecklistItem(item.id)"
-                    >
-                      <i class="fa-solid fa-xmark"></i>
-                    </button>
-                  </div>
+
+        @if (creating()) {
+          <div class="toolbar-menu">
+            <button type="button" class="tool-btn tool-btn-wide" (click)="toggleType()">
+              <i [class]="noteTypeIcon()"></i>
+              <span>{{ noteTypeLabel() }}</span>
+              <i class="fa-solid fa-chevron-down chevron"></i>
+            </button>
+
+            @if (typeOpen()) {
+              <div class="dropdown type-dropdown">
+                @for (item of noteTypes; track item.type) {
+                  <button
+                    type="button"
+                    [class.active]="type() === item.type"
+                    (click)="selectType(item.type)"
+                  >
+                    <i [class]="item.icon"></i>
+                    <span>{{ item.label }}</span>
+                  </button>
                 }
               </div>
-              @if (!checklistItems().length) {
-                <span class="field-hint">Add checklist items using the button above.</span>
-              }
+            }
+          </div>
+        }
+
+        <div class="toolbar-menu">
+          <button type="button" class="tool-btn tool-btn-wide" (click)="toggleDesign()">
+            <i class="fa-solid fa-palette"></i>
+            <span>Design</span>
+            <i class="fa-solid fa-chevron-down chevron"></i>
+          </button>
+
+          @if (designOpen()) {
+            <div class="dropdown design-dropdown">
+              <div class="dropdown-heading">
+                <div>
+                  <span>NOTE DESIGN</span>
+                  <strong>{{ selectedStyle().name }}</strong>
+                </div>
+
+                <button type="button" title="Random design" (click)="randomizeAppearance()">
+                  <i class="fa-solid fa-shuffle"></i>
+                </button>
+              </div>
+
+              <div class="design-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input
+                  type="text"
+                  placeholder="Search designs..."
+                  [value]="designSearch()"
+                  (input)="designSearch.set($any($event.target).value)"
+                />
+              </div>
+
+              <div class="design-list">
+                @for (style of filteredStyles(); track style.id) {
+                  <button
+                    type="button"
+                    class="design-option"
+                    [class.active]="styleId() === style.id"
+                    (click)="selectStyle(style.id)"
+                  >
+                    <div class="design-preview">
+                      <app-note-design [style]="style" [preview]="true"></app-note-design>
+                    </div>
+
+                    <span>{{ style.name }}</span>
+
+                    @if (styleId() === style.id) {
+                      <i class="fa-solid fa-check selected-icon"></i>
+                    }
+                  </button>
+                }
+              </div>
             </div>
           }
-          @case ('idea') {
-            <div class="field">
-              <label for="idea-content">Idea</label>
-              <textarea
-                id="idea-content"
-                placeholder="Describe your idea..."
-                [ngModel]="content()"
-                (ngModelChange)="content.set($event)"
-              ></textarea>
-            </div>
-            <div class="two-fields">
-              <div class="field">
-                <label for="idea-status">Status</label>
-                <select
-                  id="idea-status"
-                  [ngModel]="ideaStatus()"
-                  (ngModelChange)="ideaStatus.set($event)"
-                >
+        </div>
+
+        <button
+          type="button"
+          class="tool-btn details-btn"
+          [class.active]="detailsOpen()"
+          title="Note details"
+          (click)="toggleDetails()"
+        >
+          <i class="fa-solid fa-sliders"></i>
+        </button>
+
+        <button type="button" class="save-btn" (click)="save()">
+          <i class="fa-solid fa-check"></i>
+          <span>{{ creating() ? 'Add Note' : 'Done' }}</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="editor-workspace">
+      <div class="note-stage">
+        <div
+          class="editable-note"
+          [class.checklist-note]="type() === 'checklist'"
+          [class.reminder-note]="type() === 'reminder'"
+          [class.quote-note]="type() === 'quote'"
+          [class.idea-note]="type() === 'idea'"
+        >
+          <app-note-design
+            class="note-design"
+            [style]="selectedStyle()"
+            [preview]="false"
+          ></app-note-design>
+
+          <div class="pin-anchor">
+            <button type="button" class="pin-button" title="Change pin" (click)="togglePin()">
+              @if (selectedPin().type === 'none') {
+                <span class="no-pin-button">
+                  <i class="fa-solid fa-plus"></i>
+                </span>
+              } @else {
+                <app-note-pin [pinId]="pinId()"></app-note-pin>
+              }
+            </button>
+
+            @if (pinOpen()) {
+              <div class="pin-dropdown">
+                <div class="pin-dropdown-heading">
+                  <span>Choose Pin</span>
+                  <small>{{ selectedPin().name }}</small>
+                </div>
+
+                <div class="pin-grid">
+                  @for (pin of pins; track pin.id) {
+                    <button
+                      type="button"
+                      class="pin-choice"
+                      [class.active]="pinId() === pin.id"
+                      [title]="pin.name"
+                      (click)="selectPin(pin.id)"
+                    >
+                      @if (pin.type === 'none') {
+                        <i class="fa-solid fa-ban"></i>
+                      } @else {
+                        <app-note-pin [pinId]="pin.id"></app-note-pin>
+                      }
+
+                      @if (pinId() === pin.id) {
+                        <span class="pin-check">
+                          <i class="fa-solid fa-check"></i>
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="note-edit-content">
+            <div
+              #titleEditor
+              class="note-title-input rich-editor title-rich-editor"
+              contenteditable="true"
+              role="textbox"
+              aria-label="Note title"
+              data-editor-type="title"
+              data-placeholder="Note title..."
+              (focus)="activateRichEditor($event)"
+              (mouseup)="onRichSelectionChange($event)"
+              (keyup)="onRichSelectionChange($event)"
+              (input)="onRichInput($event)"
+            ></div>
+
+            @switch (type()) {
+              @case ('checklist') {
+                <div class="inline-checklist">
+                  @for (item of checklistItems(); track item.id) {
+                    <div class="inline-checklist-row">
+                      <button
+                        type="button"
+                        class="check-button"
+                        [class.completed]="item.completed"
+                        (click)="toggleChecklistItem(item.id)"
+                      >
+                        @if (item.completed) {
+                          <i class="fa-solid fa-check"></i>
+                        }
+                      </button>
+
+                      <div
+                        #checklistEditor
+                        class="checklist-rich-editor rich-editor"
+                        [class.completed-text]="item.completed"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-multiline="true"
+                        data-placeholder="Checklist item..."
+                        [attr.data-checklist-id]="item.id"
+                        [innerHTML]="item.text"
+                        (focus)="activateRichEditor($event)"
+                        (mouseup)="onRichSelectionChange($event)"
+                        (keyup)="onRichSelectionChange($event)"
+                        (input)="onRichInput($event)"
+                      ></div>
+
+                      <button
+                        type="button"
+                        class="inline-remove"
+                        title="Remove"
+                        (click)="removeChecklistItem(item.id)"
+                      >
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  }
+
+                  <button type="button" class="add-checklist-item" (click)="addChecklistItem()">
+                    <i class="fa-solid fa-plus"></i>
+                    Add item
+                  </button>
+                </div>
+              }
+
+              @default {
+                <div
+                  #richEditor
+                  class="note-body-input rich-editor"
+                  [class.quote-input]="type() === 'quote'"
+                  contenteditable="true"
+                  role="textbox"
+                  aria-multiline="true"
+                  [attr.data-placeholder]="richPlaceholder()"
+                  (focus)="activateRichEditor($event)"
+                  (mouseup)="onRichSelectionChange($event)"
+                  (keyup)="onRichSelectionChange($event)"
+                  (input)="onRichInput($event)"
+                ></div>
+
+                @if (type() === 'quote') {
+                  <div class="quote-author">
+                    <span>—</span>
+                    <input
+                      type="text"
+                      placeholder="Author"
+                      [ngModel]="quoteAuthor()"
+                      (ngModelChange)="quoteAuthor.set($event)"
+                    />
+                  </div>
+                }
+              }
+            }
+
+            @if (type() === 'reminder') {
+              <div class="reminder-time">
+                <i class="fa-regular fa-clock"></i>
+                <input
+                  type="datetime-local"
+                  [ngModel]="reminderAt()"
+                  (ngModelChange)="reminderAt.set($event)"
+                />
+              </div>
+            }
+
+            @if (type() === 'idea') {
+              <div class="idea-controls">
+                <select [ngModel]="ideaStatus()" (ngModelChange)="ideaStatus.set($event)">
                   <option value="new">New</option>
                   <option value="exploring">Exploring</option>
                   <option value="planned">Planned</option>
                   <option value="done">Done</option>
                 </select>
-              </div>
-              <div class="field">
-                <label for="idea-priority">Priority</label>
-                <select
-                  id="idea-priority"
-                  [ngModel]="ideaPriority()"
-                  (ngModelChange)="ideaPriority.set($event)"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
+
+                <select [ngModel]="ideaPriority()" (ngModelChange)="ideaPriority.set($event)">
+                  <option value="low">Low Priority</option>
+                  <option value="medium">Medium Priority</option>
+                  <option value="high">High Priority</option>
                 </select>
               </div>
+            }
+          </div>
+        </div>
+
+        <div class="editor-hint">
+          <i class="fa-regular fa-pen-to-square"></i>
+          <span>Edit directly on your note</span>
+        </div>
+      </div>
+
+      @if (detailsOpen()) {
+        <aside class="details-panel">
+          <div class="details-header">
+            <div>
+              <span>NOTE DETAILS</span>
+              <strong>Properties</strong>
             </div>
-          }
-          @case ('reminder') {
-            <div class="field">
-              <label for="reminder-content">Reminder</label>
-              <textarea
-                id="reminder-content"
-                placeholder="What do you want to remember?"
-                [ngModel]="content()"
-                (ngModelChange)="content.set($event)"
-              ></textarea>
-            </div>
-            <div class="field">
-              <label for="reminder-date">Date & Time</label>
+
+            <button type="button" (click)="detailsOpen.set(false)">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="detail-row">
+            <span>Type</span>
+            <strong>
+              <i [class]="noteTypeIcon()"></i>
+              {{ noteTypeLabel() }}
+            </strong>
+          </div>
+
+          <div class="detail-row">
+            <span>Design</span>
+            <strong>{{ selectedStyle().name }}</strong>
+          </div>
+
+          <div class="detail-row">
+            <span>Pin</span>
+            <strong>{{ selectedPin().name }}</strong>
+          </div>
+
+          <label class="detail-field">
+            <span>Tags</span>
+            <input
+              type="text"
+              placeholder="work, idea, important..."
+              [ngModel]="tagsText()"
+              (ngModelChange)="tagsText.set($event)"
+            />
+            <small>Separate tags with commas.</small>
+          </label>
+
+          @if (type() === 'reminder') {
+            <label class="detail-field">
+              <span>Reminder</span>
               <input
-                id="reminder-date"
                 type="datetime-local"
                 [ngModel]="reminderAt()"
                 (ngModelChange)="reminderAt.set($event)"
               />
-            </div>
+            </label>
           }
-          @case ('quote') {
-            <div class="field">
-              <label for="quote-content">Quote</label>
-              <textarea
-                id="quote-content"
-                placeholder="Write your quote..."
-                [ngModel]="content()"
-                (ngModelChange)="content.set($event)"
-              ></textarea>
-            </div>
-            <div class="field">
-              <label for="quote-author">Author</label>
-              <input
-                id="quote-author"
-                type="text"
-                placeholder="Quote author..."
-                [ngModel]="quoteAuthor()"
-                (ngModelChange)="quoteAuthor.set($event)"
-              />
-            </div>
-          }
-          @default {
-            <div class="field">
-              <label for="note-content">Content</label>
-              <textarea
-                id="note-content"
-                placeholder="Write something..."
-                [ngModel]="content()"
-                (ngModelChange)="content.set($event)"
-              ></textarea>
-            </div>
-          }
-        }
-        <div class="field">
-          <label for="note-tags">Tags</label>
-          <input
-            id="note-tags"
-            type="text"
-            placeholder="work, idea, important..."
-            [ngModel]="tagsText()"
-            (ngModelChange)="tagsText.set($event)"
-          />
-          <span class="field-hint">Separate tags with commas.</span>
-        </div>
-      </div>
-      <aside class="appearance-panel">
-        <div class="appearance-heading">
-          <div>
-            <span class="eyebrow">CUSTOMIZE</span>
-            <h3>Appearance</h3>
-          </div>
-          <div class="appearance-actions">
-            <button type="button" class="view-all-btn" (click)="openStyleBrowser()">
-              <i class="fa-solid fa-grip"></i>
-              View All
-            </button>
-            <button type="button" class="random-btn" (click)="randomizeAppearance()">
-              <i class="fa-solid fa-shuffle"></i>
-              Random
-            </button>
-          </div>
-        </div>
-        <div class="style-search">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input
-            type="text"
-            placeholder="Search designs..."
-            [value]="styleSearch()"
-            (input)="styleSearch.set($any($event.target).value)"
-          />
-        </div>
-        <div class="style-categories">
-          @for (category of categories; track category.value) {
-            <button
-              type="button"
-              [class.active]="selectedCategory() === category.value"
-              (click)="selectedCategory.set(category.value)"
-            >
-              {{ category.label }}
-            </button>
-          }
-        </div>
-        @if (filteredStyles().length) {
-          <div class="style-gallery">
-            @for (style of filteredStyles(); track style.id) {
-              <button
-                type="button"
-                class="style-card"
-                [class.active]="styleId() === style.id"
-                (click)="selectStyle(style.id)"
-              >
-                @if (styleId() === style.id) {
-                  <i class="fa-solid fa-circle-check selected-check"></i>
-                }
-                <div class="style-design-preview">
-                  <app-note-design [style]="style" [preview]="true"></app-note-design>
-                </div>
-                <div class="style-name">
-                  <strong>{{ style.name }}</strong>
-                  <span>{{ style.category }}</span>
-                </div>
-              </button>
-            }
-          </div>
-        } @else {
-          <div class="no-styles">
-            <i class="fa-regular fa-face-frown"></i>
-            <span>No designs found</span>
-          </div>
-        }
-        <div class="pin-section">
-          <div class="appearance-heading">
-            <div>
-              <span class="eyebrow">ATTACHMENT</span>
-              <h3>Pin Style</h3>
-            </div>
-          </div>
-          <div class="pin-options">
-            @for (pin of pins; track pin.id) {
-              <button
-                type="button"
-                class="pin-option"
-                [class.active]="pinId() === pin.id"
-                [title]="pin.name"
-                (click)="selectPin(pin.id)"
-              >
-                @if (pinId() === pin.id) {
-                  <i class="fa-solid fa-circle-check pin-selected"></i>
-                }
-                <div class="pin-preview">
-                  @if (pin.type === 'none') {
-                    <i class="fa-solid fa-ban no-pin"></i>
-                  } @else {
-                    <app-note-pin [pinId]="pin.id"></app-note-pin>
-                  }
-                </div>
-                <span>{{ pin.name }}</span>
-              </button>
-            }
-          </div>
-        </div>
-        <div class="selected-style-info" [style.--selected-accent]="selectedStyle().accentColor">
-          <span>Selected Design</span>
-          <strong>{{ selectedStyle().name }}</strong>
-          <small>{{ selectedStyle().category }} · {{ selectedStyle().pattern }}</small>
-        </div>
-      </aside>
+        </aside>
+      }
     </div>
-    <footer class="editor-footer">
-      <button type="button" class="cancel-btn" (click)="closed.emit()">Cancel</button>
-      <button type="button" class="save-btn" (click)="save()">
-        <i class="fa-solid" [class.fa-plus]="creating()" [class.fa-check]="!creating()"></i>
-        {{ creating() ? 'Add Note' : 'Save Changes' }}
-      </button>
-    </footer>
   </section>
 </div>
-@if (styleBrowserOpen()) {
-  <app-note-style-browser
-    [selectedStyleId]="styleId()"
-    (selected)="selectBrowserStyle($event)"
-    (closed)="closeStyleBrowser()"
-  ></app-note-style-browser>
-}

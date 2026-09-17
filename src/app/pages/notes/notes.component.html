@@ -1,42 +1,44 @@
 <section class="notes-page">
   <div class="notes-toolbar">
-    <div class="toolbar-filters">
-      <div class="type-filters">
-        @for (filter of filters; track filter.value) {
-          <button
-            type="button"
-            [class.active]="selectedType() === filter.value"
-            [title]="filter.label"
-            (click)="selectedType.set(filter.value)"
-          >
-            <i [class]="filter.icon"></i>
-            <span>{{ filter.label }}</span>
-          </button>
+    <div class="desktop-toolbar-filters">
+      <div class="toolbar-filters">
+        <div class="type-filters">
+          @for (filter of filters; track filter.value) {
+            <button
+              type="button"
+              [class.active]="selectedType() === filter.value"
+              [title]="filter.label"
+              (click)="selectedType.set(filter.value)"
+            >
+              <i [class]="filter.icon"></i>
+              <span>{{ filter.label }}</span>
+            </button>
+          }
+        </div>
+        @if (boardTags().length) {
+          <div class="toolbar-select">
+            <i class="fa-solid fa-tag"></i>
+            <select
+              [value]="selectedTag() || ''"
+              (change)="selectedTag.set($any($event.target).value || null)"
+            >
+              <option value="">All Tags</option>
+              @for (tag of boardTags(); track tag) {
+                <option [value]="tag">{{ tag }}</option>
+              }
+            </select>
+          </div>
         }
-      </div>
-      @if (boardTags().length) {
         <div class="toolbar-select">
-          <i class="fa-solid fa-tag"></i>
-          <select
-            [value]="selectedTag() || ''"
-            (change)="selectedTag.set($any($event.target).value || null)"
-          >
-            <option value="">All Tags</option>
-            @for (tag of boardTags(); track tag) {
-              <option [value]="tag">{{ tag }}</option>
-            }
+          <i class="fa-solid fa-arrow-down-wide-short"></i>
+          <select [value]="sortMode()" (change)="sortMode.set($any($event.target).value)">
+            <option value="manual">Manual</option>
+            <option value="updated">Recently Updated</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="title">Title</option>
           </select>
         </div>
-      }
-      <div class="toolbar-select">
-        <i class="fa-solid fa-arrow-down-wide-short"></i>
-        <select [value]="sortMode()" (change)="sortMode.set($any($event.target).value)">
-          <option value="manual">Manual</option>
-          <option value="updated">Recently Updated</option>
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="title">Title</option>
-        </select>
       </div>
     </div>
     <div class="toolbar-spacer"></div>
@@ -54,8 +56,8 @@
         </button>
       }
     </div>
-    <div class="toolbar-divider"></div>
-    <div class="board-actions">
+    <div class="toolbar-divider desktop-only"></div>
+    <div class="board-actions desktop-only">
       <button
         type="button"
         class="design-btn"
@@ -86,7 +88,7 @@
         <i class="fa-solid fa-crosshairs"></i>
       </button>
     </div>
-    <div class="toolbar-divider"></div>
+    <div class="toolbar-divider desktop-only"></div>
     <div class="new-note-menu">
       <button
         type="button"
@@ -144,6 +146,124 @@
               </button>
             }
           </div>
+        </div>
+      }
+    </div>
+    <div class="mobile-tools-menu">
+      <button
+        type="button"
+        class="mobile-tools-trigger"
+        title="Board tools"
+        [class.active]="mobileMenuOpen()"
+        (click)="toggleMobileMenu($event)"
+      >
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      @if (mobileMenuOpen()) {
+        <div class="mobile-tools-dropdown">
+          <div class="mobile-menu-header">
+            <div>
+              <span>BOARD TOOLS</span>
+              <strong>Filters & View</strong>
+            </div>
+            <button
+              type="button"
+              title="Close"
+              aria-label="Close board tools"
+              (click)="closeMobileMenu()"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">FILTER NOTES</span>
+            <div class="mobile-type-grid">
+              @for (filter of filters; track filter.value) {
+                <button
+                  type="button"
+                  [class.active]="selectedType() === filter.value"
+                  (click)="selectMobileType(filter.value)"
+                >
+                  <i [class]="filter.icon"></i>
+                  <span>{{ filter.label }}</span>
+                </button>
+              }
+            </div>
+          </div>
+          @if (boardTags().length) {
+            <div class="mobile-menu-section">
+              <span class="mobile-menu-label">TAG</span>
+              <div class="mobile-menu-select">
+                <i class="fa-solid fa-tag"></i>
+                <select
+                  [value]="selectedTag() || ''"
+                  (change)="selectedTag.set($any($event.target).value || null)"
+                >
+                  <option value="">All Tags</option>
+                  @for (tag of boardTags(); track tag) {
+                    <option [value]="tag">{{ tag }}</option>
+                  }
+                </select>
+                <i class="fa-solid fa-chevron-down"></i>
+              </div>
+            </div>
+          }
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">SORT NOTES</span>
+            <div class="mobile-menu-select">
+              <i class="fa-solid fa-arrow-down-wide-short"></i>
+              <select [value]="sortMode()" (change)="sortMode.set($any($event.target).value)">
+                <option value="manual">Manual</option>
+                <option value="updated">Recently Updated</option>
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="title">Title</option>
+              </select>
+              <i class="fa-solid fa-chevron-down"></i>
+            </div>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">BOARD</span>
+            <div class="mobile-menu-actions">
+              <button type="button" (click)="openMobileDesignPicker()">
+                <i class="fa-solid fa-palette"></i>
+                <span>Design</span>
+              </button>
+              <button type="button" [class.active]="gridEnabled()" (click)="toggleGrid()">
+                <i class="fa-solid fa-border-all"></i>
+                <span>Grid</span>
+              </button>
+              <button type="button" (click)="resetMobileView()">
+                <i class="fa-solid fa-crosshairs"></i>
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+          <div class="mobile-menu-section">
+            <div class="mobile-zoom">
+              <div class="mobile-zoom-label">
+                <i class="fa-solid fa-magnifying-glass-plus"></i>
+                <span>Board Zoom</span>
+              </div>
+              <div class="mobile-zoom-control">
+                <button type="button" title="Zoom out" (click)="zoomOut()">
+                  <i class="fa-solid fa-minus"></i>
+                </button>
+                <strong>{{ zoomPercent() }}%</strong>
+                <button type="button" title="Zoom in" (click)="zoomIn()">
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          @if (selectedType() !== 'all' || selectedTag() || searchQuery()) {
+            <div class="mobile-menu-footer">
+              <button type="button" (click)="clearFilters()">
+                <i class="fa-solid fa-filter-circle-xmark"></i>
+                Clear Filters
+              </button>
+            </div>
+          }
         </div>
       }
     </div>

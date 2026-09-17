@@ -1,35 +1,37 @@
 <section class="boards-page">
   <div class="boards-toolbar">
-    <div class="board-filters">
-      <button type="button" [class.active]="filter() === 'all'" (click)="filter.set('all')">
-        <i class="fa-solid fa-layer-group"></i>
-        <span>All Boards</span>
-      </button>
-      <button
-        type="button"
-        [class.active]="filter() === 'favorites'"
-        (click)="filter.set('favorites')"
-      >
-        <i class="fa-regular fa-star"></i>
-        <span>Favorites</span>
-      </button>
-    </div>
-    <div class="toolbar-divider"></div>
-    <div class="board-stats">
-      <div title="Total boards">
-        <i class="fa-solid fa-border-all"></i>
-        <strong>{{ boardService.boards().length }}</strong>
-        <span>Boards</span>
+    <div class="desktop-board-tools">
+      <div class="board-filters">
+        <button type="button" [class.active]="filter() === 'all'" (click)="filter.set('all')">
+          <i class="fa-solid fa-layer-group"></i>
+          <span>All Boards</span>
+        </button>
+        <button
+          type="button"
+          [class.active]="filter() === 'favorites'"
+          (click)="filter.set('favorites')"
+        >
+          <i class="fa-regular fa-star"></i>
+          <span>Favorites</span>
+        </button>
       </div>
-      <div title="Total notes">
-        <i class="fa-regular fa-note-sticky"></i>
-        <strong>{{ totalNotes() }}</strong>
-        <span>Notes</span>
-      </div>
-      <div title="Favorite boards">
-        <i class="fa-regular fa-star"></i>
-        <strong>{{ favoriteCount() }}</strong>
-        <span>Favorites</span>
+      <div class="toolbar-divider"></div>
+      <div class="board-stats">
+        <div title="Total boards">
+          <i class="fa-solid fa-border-all"></i>
+          <strong>{{ boardService.boards().length }}</strong>
+          <span>Boards</span>
+        </div>
+        <div title="Total notes">
+          <i class="fa-regular fa-note-sticky"></i>
+          <strong>{{ totalNotes() }}</strong>
+          <span>Notes</span>
+        </div>
+        <div title="Favorite boards">
+          <i class="fa-regular fa-star"></i>
+          <strong>{{ favoriteCount() }}</strong>
+          <span>Favorites</span>
+        </div>
       </div>
     </div>
     <div class="toolbar-spacer"></div>
@@ -47,11 +49,101 @@
         </button>
       }
     </div>
-    <div class="toolbar-divider"></div>
-    <button type="button" class="create-btn" (click)="openCreateBoard()">
+    <div class="toolbar-divider desktop-only"></div>
+    <button type="button" class="create-btn" title="New Board" (click)="openCreateBoard()">
       <i class="fa-solid fa-plus"></i>
       <span>New Board</span>
     </button>
+    <div class="mobile-tools-menu">
+      <button
+        type="button"
+        class="mobile-tools-trigger"
+        title="Board tools"
+        [class.active]="mobileMenuOpen()"
+        (click)="toggleMobileMenu($event)"
+      >
+        <i class="fa-solid fa-ellipsis-vertical"></i>
+      </button>
+      @if (mobileMenuOpen()) {
+        <div class="mobile-tools-dropdown">
+          <div class="mobile-menu-header">
+            <div>
+              <span>BOARDS</span>
+              <strong>Filter & Overview</strong>
+            </div>
+            <button
+              type="button"
+              title="Close"
+              aria-label="Close board tools"
+              (click)="closeMobileMenu()"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">SHOW BOARDS</span>
+            <div class="mobile-filter-grid">
+              <button
+                type="button"
+                [class.active]="filter() === 'all'"
+                (click)="setMobileFilter('all')"
+              >
+                <i class="fa-solid fa-layer-group"></i>
+                <span>
+                  <strong>All Boards</strong>
+                  <small>{{ boardService.boards().length }} total</small>
+                </span>
+              </button>
+              <button
+                type="button"
+                [class.active]="filter() === 'favorites'"
+                (click)="setMobileFilter('favorites')"
+              >
+                <i class="fa-regular fa-star"></i>
+                <span>
+                  <strong>Favorites</strong>
+                  <small>{{ favoriteCount() }} saved</small>
+                </span>
+              </button>
+            </div>
+          </div>
+          <div class="mobile-menu-section">
+            <span class="mobile-menu-label">OVERVIEW</span>
+            <div class="mobile-board-stats">
+              <div>
+                <span class="mobile-stat-icon">
+                  <i class="fa-solid fa-border-all"></i>
+                </span>
+                <strong>{{ boardService.boards().length }}</strong>
+                <small>Boards</small>
+              </div>
+              <div>
+                <span class="mobile-stat-icon">
+                  <i class="fa-regular fa-note-sticky"></i>
+                </span>
+                <strong>{{ totalNotes() }}</strong>
+                <small>Notes</small>
+              </div>
+              <div>
+                <span class="mobile-stat-icon">
+                  <i class="fa-regular fa-star"></i>
+                </span>
+                <strong>{{ favoriteCount() }}</strong>
+                <small>Favorites</small>
+              </div>
+            </div>
+          </div>
+          @if (searchQuery()) {
+            <div class="mobile-menu-footer">
+              <button type="button" (click)="clearSearch()">
+                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                Clear Search
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
   </div>
   <div class="boards-content">
     @if (filteredBoards().length) {
