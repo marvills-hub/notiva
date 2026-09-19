@@ -9,14 +9,15 @@ import { NoteModel } from '../models/note.model';
 export class NotificationService {
   private readonly androidChannelId = 'notiva-reminders';
   private readonly handledStorageKey = 'notiva-handled-reminder-popups';
-  private readonly dueReminderSignal = signal<NoteModel | null>(null);
+  private readonly dueRemindersSignal = signal<NoteModel[]>([]);
   private reminderNotes: NoteModel[] = [];
   private reminderTimer: ReturnType<typeof setInterval> | null = null;
 
-  readonly dueReminder = this.dueReminderSignal.asReadonly();
+  readonly dueReminders = this.dueRemindersSignal.asReadonly();
 
   async syncReminder(note: NoteModel): Promise<void> {
-    await this.cancelReminder(note.id);
+    await this.cancelNativeReminder(note.id);
+    this.trackReminder(note);
 
     if (!this.shouldSchedule(note)) return;
 
@@ -38,11 +39,11 @@ export class NotificationService {
   }
 
   async syncReminders(notes: NoteModel[]): Promise<void> {
+    this.setReminderNotes(notes);
+
     const reminders = notes.filter(
       (note) => note.type === 'reminder' && note.reminderAt && !note.archived,
     );
-
-    this.setReminderNotes(reminders);
 
     for (const note of reminders) {
       await this.syncReminder(note);
@@ -60,34 +61,29 @@ export class NotificationService {
 
   dismissDueReminder(note: NoteModel): void {
     this.markReminderHandled(note);
-    this.dueReminderSignal.set(null);
+    this.removeDueReminder(note.id);
     queueMicrotask(() => this.checkDueReminders());
   }
 
   completeDueReminder(note: NoteModel): void {
     this.markReminderHandled(note);
-    this.dueReminderSignal.set(null);
+    this.removeDueReminder(note.id);
     queueMicrotask(() => this.checkDueReminders());
   }
 
-  async cancelReminder(noteId: string): Promise<void> {
-    const id = this.getNotificationId(noteId);
+  dismissAllDueReminders(): void {
+    const reminders = this.dueRemindersSignal();
 
-    try {
-      if (this.isCapacitorNative()) {
-        await LocalNotifications.cancel({
-          notifications: [{ id }],
-        });
-        return;
-      }
-
-      if (this.isTauri()) {
-        const { cancel } = await import('@tauri-apps/plugin-notification');
-        await cancel([id]);
-      }
-    } catch (error) {
-      console.error(`Failed to cancel reminder notification "${noteId}".`, error);
+    for (const note of reminders) {
+      this.markReminderHandled(note);
     }
+
+    this.dueRemindersSignal.set([]);
+  }
+
+  async cancelReminder(noteId: string): Promise<void> {
+    this.removeTrackedReminder(noteId);
+    await this.cancelNativeReminder(noteId);
   }
 
   async cancelReminders(notes: NoteModel[]): Promise<void> {
@@ -123,7 +119,6 @@ export class NotificationService {
       }
 
       if (!('Notification' in window)) return false;
-
       if (Notification.permission === 'granted') return true;
       if (Notification.permission === 'denied') return false;
 
@@ -184,6 +179,67 @@ export class NotificationService {
     }
   }
 
+  private trackReminder(note: NoteModel): void {
+    const index = this.reminderNotes.findIndex((item) => item.id === note.id);
+    const shouldTrack = note.type === 'reminder' && Boolean(note.reminderAt) && !note.archived;
+
+    if (!shouldTrack) {
+      if (index !== -1) {
+        this.reminderNotes.splice(index, 1);
+      }
+
+      this.removeDueReminder(note.id);
+      return;
+    }
+
+    if (index === -1) {
+      this.reminderNotes.push(note);
+    } else {
+      this.reminderNotes[index] = note;
+    }
+
+    this.startReminderWatcher();
+    this.checkDueReminders();
+  }
+
+  private removeTrackedReminder(noteId: string): void {
+    this.reminderNotes = this.reminderNotes.filter((note) => note.id !== noteId);
+
+    this.removeDueReminder(noteId);
+    queueMicrotask(() => this.checkDueReminders());
+  }
+
+  private removeDueReminder(noteId: string): void {
+    const current = this.dueRemindersSignal();
+    const next = current.filter((note) => note.id !== noteId);
+
+    if (next.length !== current.length) {
+      this.dueRemindersSignal.set(next);
+    }
+  }
+
+  private async cancelNativeReminder(noteId: string): Promise<void> {
+    const id = this.getNotificationId(noteId);
+
+    try {
+      if (this.isCapacitorNative()) {
+        await LocalNotifications.cancel({
+          notifications: [{ id }],
+        });
+
+        return;
+      }
+
+      if (this.isTauri()) {
+        const { cancel } = await import('@tauri-apps/plugin-notification');
+
+        await cancel([id]);
+      }
+    } catch (error) {
+      console.error(`Failed to cancel reminder notification "${noteId}".`, error);
+    }
+  }
+
   private startReminderWatcher(): void {
     if (this.reminderTimer) return;
 
@@ -193,12 +249,14 @@ export class NotificationService {
   }
 
   private checkDueReminders(): void {
-    if (this.dueReminderSignal()) return;
-
     const now = Date.now();
 
-    const dueReminder = this.reminderNotes
+    const dueReminders = this.reminderNotes
       .filter((note) => {
+        if (note.type !== 'reminder' || note.archived || !note.reminderAt) {
+          return false;
+        }
+
         const reminderAt = this.getReminderDate(note);
 
         if (!reminderAt) return false;
@@ -211,15 +269,34 @@ export class NotificationService {
         const bTime = this.getReminderDate(b)?.getTime() ?? 0;
 
         return aTime - bTime;
-      })[0];
+      });
 
-    if (!dueReminder) return;
+    const current = this.dueRemindersSignal();
 
-    this.dueReminderSignal.set(dueReminder);
+    if (this.sameReminderCollection(current, dueReminders)) {
+      return;
+    }
+
+    this.dueRemindersSignal.set(dueReminders);
+  }
+
+  private sameReminderCollection(current: NoteModel[], next: NoteModel[]): boolean {
+    if (current.length !== next.length) return false;
+
+    return current.every((note, index) => {
+      const other = next[index];
+
+      return (
+        note.id === other.id &&
+        note.reminderAt === other.reminderAt &&
+        note.updatedAt?.getTime?.() === other.updatedAt?.getTime?.()
+      );
+    });
   }
 
   private markReminderHandled(note: NoteModel): void {
     const handled = this.getHandledReminders();
+
     handled[this.getReminderKey(note)] = Date.now();
 
     const entries = Object.entries(handled)
@@ -257,6 +334,7 @@ export class NotificationService {
 
   private async scheduleCapacitorReminder(note: NoteModel, reminderAt: Date): Promise<void> {
     const granted = await this.requestPermission();
+
     if (!granted) return;
 
     await this.ensureCapacitorChannel();
@@ -284,6 +362,7 @@ export class NotificationService {
 
   private async scheduleTauriReminder(note: NoteModel, reminderAt: Date): Promise<void> {
     const granted = await this.requestPermission();
+
     if (!granted) return;
 
     const { Schedule, sendNotification } = await import('@tauri-apps/plugin-notification');
@@ -318,7 +397,9 @@ export class NotificationService {
   }
 
   private shouldSchedule(note: NoteModel): boolean {
-    if (note.type !== 'reminder' || note.archived) return false;
+    if (note.type !== 'reminder' || note.archived || !note.reminderAt) {
+      return false;
+    }
 
     const reminderAt = this.getReminderDate(note);
 
@@ -349,6 +430,7 @@ export class NotificationService {
     }
 
     const element = document.createElement('div');
+
     element.innerHTML = html;
 
     return element.textContent || '';

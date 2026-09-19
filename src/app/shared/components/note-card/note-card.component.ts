@@ -1,6 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import { CalendarEventModel, NoteModel } from '../../../core/models/note.model';
+import {
+  CalendarEventModel,
+  NoteAttachmentModel,
+  NoteModel,
+} from '../../../core/models/note.model';
 import {
   CalendarService,
   MoonPhase,
@@ -9,6 +13,7 @@ import {
 import { NoteStyleService } from '../../../core/services/note-style.service';
 import { NoteDesignComponent } from '../note-design/note-design.component';
 import { NotePinComponent } from '../note-pin/note-pin.component';
+
 interface CalendarDay {
   day: number | null;
   date: string | null;
@@ -17,6 +22,7 @@ interface CalendarDay {
   holiday: PhilippineHoliday | null;
   moonPhase: MoonPhase | null;
 }
+
 @Component({
   selector: 'app-note-card',
   standalone: true,
@@ -43,6 +49,7 @@ export class NoteCardComponent {
   readonly dragEnded = output<{ id: string; x: number; y: number; moved: boolean }>();
   readonly viewClicked = output<NoteModel>();
   readonly editClicked = output<NoteModel>();
+  readonly attachmentClicked = output<{ note: NoteModel; attachment: NoteAttachmentModel }>();
   readonly favoriteClicked = output<string>();
   readonly pinnedClicked = output<string>();
   readonly duplicateClicked = output<string>();
@@ -52,26 +59,29 @@ export class NoteCardComponent {
   readonly y = signal(0);
   readonly width = signal(240);
   readonly height = signal(250);
+  readonly attachmentStackOpen = signal(false);
   readonly style = computed(() => this.noteStyleService.getStyle(this.note().styleId));
   readonly pin = computed(() => this.noteStyleService.getPin(this.note().pinId));
+  readonly attachments = computed(() => this.note().attachments || []);
+  readonly hasAttachments = computed(() => this.attachments().length > 0);
+  readonly visibleAttachments = computed(() => this.attachments().slice(0, 5));
+  readonly hiddenAttachmentCount = computed(() =>
+    Math.max(0, this.attachments().length - this.visibleAttachments().length),
+  );
   readonly secondaryPin = computed(() => {
     const pinId = this.note().secondaryPinId;
     return pinId ? this.noteStyleService.getPin(pinId) : null;
   });
   readonly calendarMonthName = computed(() => {
     const calendar = this.note().calendar;
-    if (!calendar) {
-      return '';
-    }
+    if (!calendar) return '';
     return new Intl.DateTimeFormat('en-US', { month: 'long' }).format(
       new Date(calendar.year, calendar.month, 1),
     );
   });
   readonly calendarDays = computed<CalendarDay[]>(() => {
     const calendar = this.note().calendar;
-    if (!calendar) {
-      return [];
-    }
+    if (!calendar) return [];
     const firstDay = new Date(calendar.year, calendar.month, 1).getDay();
     const daysInMonth = new Date(calendar.year, calendar.month + 1, 0).getDate();
     const today = new Date();
@@ -136,6 +146,7 @@ export class NoteCardComponent {
   private startHeight = 0;
   private additiveSelection = false;
   private viewTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor() {
     effect(() => {
       const note = this.note();
@@ -147,16 +158,73 @@ export class NoteCardComponent {
         this.width.set(note.width);
         this.height.set(note.height);
       }
+      if (!note.attachments?.length) {
+        this.attachmentStackOpen.set(false);
+      }
     });
   }
+
+  getAttachmentRotation(index: number): number {
+    const rotations = [2.8, -4.8, 6.8, -8.8, 10.8];
+    return rotations[index] ?? 0;
+  }
+
+  getAttachmentOpenRotation(index: number): number {
+    const rotations = [7, -11, 15, -19, 23];
+    return rotations[index] ?? 0;
+  }
+
+  getAttachmentIcon(attachment: NoteAttachmentModel): string {
+    switch (attachment.type) {
+      case 'image':
+        return 'fa-regular fa-image';
+      case 'pdf':
+        return 'fa-regular fa-file-pdf';
+      case 'document':
+        return 'fa-regular fa-file-word';
+      case 'spreadsheet':
+        return 'fa-regular fa-file-excel';
+      case 'presentation':
+        return 'fa-regular fa-file-powerpoint';
+      case 'archive':
+        return 'fa-regular fa-file-zipper';
+      case 'audio':
+        return 'fa-regular fa-file-audio';
+      case 'video':
+        return 'fa-regular fa-file-video';
+      case 'text':
+        return 'fa-regular fa-file-lines';
+      default:
+        return 'fa-regular fa-file';
+    }
+  }
+
+  toggleAttachmentStack(event: MouseEvent): void {
+    if (!this.hasAttachments()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.clearViewTimer();
+    this.attachmentStackOpen.update((open) => !open);
+    this.activated.emit(this.note().id);
+  }
+
+  openAttachment(event: MouseEvent, attachment: NoteAttachmentModel): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.clearViewTimer();
+    this.activated.emit(this.note().id);
+    this.attachmentClicked.emit({
+      note: this.note(),
+      attachment,
+    });
+    if (!attachment.url) return;
+    window.open(attachment.url, '_blank', 'noopener,noreferrer');
+  }
+
   startDrag(event: PointerEvent): void {
-    if (event.button !== 0 || this.resizing) {
-      return;
-    }
+    if (event.button !== 0 || this.resizing) return;
     const target = event.target as HTMLElement;
-    if (this.isInteractiveTarget(target)) {
-      return;
-    }
+    if (this.isInteractiveTarget(target)) return;
     event.preventDefault();
     event.stopPropagation();
     this.clearViewTimer();
@@ -185,10 +253,9 @@ export class NoteCardComponent {
       card.setPointerCapture(event.pointerId);
     }
   }
+
   drag(event: PointerEvent): void {
-    if (!this.dragging || event.pointerId !== this.dragPointerId) {
-      return;
-    }
+    if (!this.dragging || event.pointerId !== this.dragPointerId) return;
     const movedX = Math.abs(event.clientX - this.dragStartClientX);
     const movedY = Math.abs(event.clientY - this.dragStartClientY);
     if (movedX > 4 || movedY > 4) {
@@ -207,10 +274,9 @@ export class NoteCardComponent {
       });
     }
   }
+
   endDrag(event: PointerEvent): void {
-    if (!this.dragging || event.pointerId !== this.dragPointerId) {
-      return;
-    }
+    if (!this.dragging || event.pointerId !== this.dragPointerId) return;
     const card = event.currentTarget as HTMLElement;
     if (card.hasPointerCapture(event.pointerId)) {
       card.releasePointerCapture(event.pointerId);
@@ -235,21 +301,16 @@ export class NoteCardComponent {
       });
       return;
     }
-    if (additiveSelection) {
-      return;
-    }
-    if (this.viewTimer) {
-      clearTimeout(this.viewTimer);
-    }
+    if (additiveSelection) return;
+    if (this.viewTimer) clearTimeout(this.viewTimer);
     this.viewTimer = setTimeout(() => {
       this.viewClicked.emit(this.note());
       this.viewTimer = null;
     }, 220);
   }
+
   startResize(event: PointerEvent): void {
-    if (event.button !== 0) {
-      return;
-    }
+    if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
     this.clearViewTimer();
@@ -265,10 +326,9 @@ export class NoteCardComponent {
       handle.setPointerCapture(event.pointerId);
     }
   }
+
   resize(event: PointerEvent): void {
-    if (!this.resizing || event.pointerId !== this.resizePointerId) {
-      return;
-    }
+    if (!this.resizing || event.pointerId !== this.resizePointerId) return;
     const scale = Math.max(this.zoom(), 0.01);
     const deltaX = (event.clientX - this.startPointerX) / scale;
     const deltaY = (event.clientY - this.startPointerY) / scale;
@@ -277,10 +337,9 @@ export class NoteCardComponent {
     this.width.set(Math.max(minWidth, this.startWidth + deltaX));
     this.height.set(Math.max(minHeight, this.startHeight + deltaY));
   }
+
   endResize(event: PointerEvent): void {
-    if (!this.resizing || event.pointerId !== this.resizePointerId) {
-      return;
-    }
+    if (!this.resizing || event.pointerId !== this.resizePointerId) return;
     const handle = event.currentTarget as HTMLElement;
     if (handle.hasPointerCapture(event.pointerId)) {
       handle.releasePointerCapture(event.pointerId);
@@ -293,46 +352,56 @@ export class NoteCardComponent {
       height: this.height(),
     });
   }
+
   edit(event: MouseEvent): void {
     event.stopPropagation();
     this.clearViewTimer();
     this.editClicked.emit(this.note());
   }
+
   previousCalendarMonth(event: MouseEvent): void {
     event.stopPropagation();
     this.clearViewTimer();
     this.calendarPreviousMonth.emit(this.note().id);
   }
+
   nextCalendarMonth(event: MouseEvent): void {
     event.stopPropagation();
     this.clearViewTimer();
     this.calendarNextMonth.emit(this.note().id);
   }
+
   goToCalendarToday(event: MouseEvent): void {
     event.stopPropagation();
     this.clearViewTimer();
     this.calendarTodayClicked.emit(this.note().id);
   }
+
   toggleFavorite(event: MouseEvent): void {
     event.stopPropagation();
     this.favoriteClicked.emit(this.note().id);
   }
+
   togglePinned(event: MouseEvent): void {
     event.stopPropagation();
     this.pinnedClicked.emit(this.note().id);
   }
+
   duplicate(event: MouseEvent): void {
     event.stopPropagation();
     this.duplicateClicked.emit(this.note().id);
   }
+
   archive(event: MouseEvent): void {
     event.stopPropagation();
     this.archiveClicked.emit(this.note().id);
   }
+
   delete(event: MouseEvent): void {
     event.stopPropagation();
     this.deleteClicked.emit(this.note().id);
   }
+
   toggleChecklist(event: MouseEvent, itemId: string): void {
     event.stopPropagation();
     this.checklistItemToggled.emit({
@@ -340,27 +409,27 @@ export class NoteCardComponent {
       itemId,
     });
   }
+
   getCalendarEvents(date: string | null): CalendarEventModel[] {
-    if (!date) {
-      return [];
-    }
+    if (!date) return [];
     return this.calendarEventsByDate().get(date) || [];
   }
+
   private formatCalendarDate(year: number, month: number, day: number): string {
     const monthValue = String(month + 1).padStart(2, '0');
     const dayValue = String(day).padStart(2, '0');
     return `${year}-${monthValue}-${dayValue}`;
   }
+
   private clearViewTimer(): void {
-    if (!this.viewTimer) {
-      return;
-    }
+    if (!this.viewTimer) return;
     clearTimeout(this.viewTimer);
     this.viewTimer = null;
   }
+
   private isInteractiveTarget(target: HTMLElement): boolean {
     return !!target.closest(
-      'button, input, textarea, select, option, a, label, [contenteditable="true"], .resize-handle, .checklist-item, .note-actions, .calendar-controls, .calendar-day',
+      'button, input, textarea, select, option, a, label, [contenteditable="true"], .resize-handle, .checklist-item, .note-actions, .calendar-controls, .calendar-day, .note-pin-layer, .attachment-paper',
     );
   }
 }

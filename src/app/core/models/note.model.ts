@@ -1,10 +1,18 @@
 export type NoteType = 'text' | 'checklist' | 'idea' | 'reminder' | 'quote' | 'calendar';
-
 export type NoteColor = 'yellow' | 'purple' | 'blue' | 'green' | 'pink' | 'orange';
-
 export type IdeaStatus = 'new' | 'exploring' | 'planned' | 'done';
-
 export type IdeaPriority = 'low' | 'medium' | 'high';
+export type NoteAttachmentType =
+  | 'image'
+  | 'pdf'
+  | 'document'
+  | 'spreadsheet'
+  | 'presentation'
+  | 'text'
+  | 'archive'
+  | 'audio'
+  | 'video'
+  | 'other';
 
 export interface ChecklistItemModel {
   id: string;
@@ -28,6 +36,17 @@ export interface CalendarModel {
   events: CalendarEventModel[];
 }
 
+export interface NoteAttachmentModel {
+  id: string;
+  name: string;
+  type: NoteAttachmentType;
+  mimeType: string;
+  size: number;
+  url: string;
+  storagePath: string;
+  createdAt: Date;
+}
+
 export interface NoteModel {
   id: string;
   boardId: string;
@@ -49,6 +68,7 @@ export interface NoteModel {
   archived: boolean;
   tags: string[];
   checklistItems: ChecklistItemModel[];
+  attachments: NoteAttachmentModel[];
   reminderAt: string | null;
   quoteAuthor: string;
   ideaStatus: IdeaStatus;

@@ -1,71 +1,212 @@
-<router-outlet />
+@if (!reminderWindow) {
+  <router-outlet />
+}
 
-@if (reminder(); as note) {
-  <div class="reminder-overlay">
-    <div class="reminder-popup" role="dialog" aria-modal="true" aria-label="Reminder">
-      <div class="reminder-glow"></div>
+@if (reminderWindow && reminderReady()) {
+  <div class="reminder-center">
+    <div class="reminder-backdrop"></div>
 
-      <header class="reminder-header">
-        <div class="reminder-icon">
-          <i [class]="reminderTypeIcon(note)"></i>
+    <header class="reminder-center-header">
+      <div class="reminder-center-heading">
+        <div class="reminder-center-icon">
+          <i class="fa-regular fa-bell"></i>
         </div>
 
-        <div class="reminder-heading">
-          <span>NOTIVA REMINDER</span>
-          <small>It's time for this note</small>
-        </div>
-
-        <button
-          type="button"
-          class="reminder-close"
-          title="Dismiss reminder"
-          aria-label="Dismiss reminder"
-          (click)="dismissReminder()"
-        >
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </header>
-
-      <div class="reminder-body">
-        <div class="reminder-pin">
-          <span></span>
-        </div>
-
-        <div class="reminder-paper">
-          <div class="reminder-paper-type">
-            <i class="fa-regular fa-clock"></i>
-            <span>Reminder</span>
-          </div>
-
-          <h2>{{ note.title || 'Reminder' }}</h2>
-
-          <p>{{ reminderContent() }}</p>
-
-          @if (note.reminderAt) {
-            <div class="reminder-date">
-              <i class="fa-regular fa-calendar"></i>
-              <span>{{ note.reminderAt | date: 'MMM d, y · h:mm a' }}</span>
-            </div>
-          }
-
-          @if (note.tags.length) {
-            <div class="reminder-tags">
-              @for (tag of note.tags; track tag) {
-                <span>#{{ tag }}</span>
-              }
-            </div>
-          }
+        <div>
+          <span>Notiva</span>
+          <h1>
+            @if (reminderCount()) {
+              {{ reminderCount() }}
+              {{ reminderCount() === 1 ? 'reminder' : 'reminders' }}
+            } @else {
+              Reminders cleared
+            }
+          </h1>
         </div>
       </div>
 
-      <footer class="reminder-actions">
-        <button type="button" class="dismiss-btn" (click)="dismissReminder()">Dismiss</button>
+      <div class="reminder-center-actions">
+        @if (reminderCount() > 1) {
+          <button type="button" class="dismiss-all-button" (click)="dismissAll()">
+            <i class="fa-solid fa-check-double"></i>
+            <span>Dismiss all</span>
+          </button>
+        }
 
-        <button type="button" class="open-btn" (click)="openReminderPopup()">
-          <span>Open note</span>
-          <i class="fa-solid fa-arrow-right"></i>
+        <button
+          type="button"
+          class="close-center-button"
+          title="Close reminder overlay"
+          aria-label="Close reminder overlay"
+          (click)="closeReminderCenter()"
+        >
+          <i class="fa-solid fa-xmark"></i>
         </button>
-      </footer>
-    </div>
+      </div>
+    </header>
+
+    <main class="reminder-center-scroll">
+      @if (reminders().length) {
+        <div
+          class="reminder-grid"
+          [class.single-reminder]="reminderCount() === 1"
+          [class.two-reminders]="reminderCount() === 2"
+        >
+          @for (note of reminders(); track note.id) {
+            <article class="reminder-card">
+              @if (getReminderPin(note); as pin) {
+                @if (pin.type !== 'none') {
+                  <div class="reminder-card-pin">
+                    <app-note-pin [pinId]="note.pinId"></app-note-pin>
+                  </div>
+                }
+              }
+
+              <button
+                type="button"
+                class="reminder-card-close"
+                title="Dismiss this reminder"
+                aria-label="Dismiss this reminder"
+                (click)="dismissReminder(note, $event)"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+
+              <app-note-design [style]="getReminderStyle(note)">
+                <div
+                  class="reminder-card-content"
+                  [attr.data-pattern]="getReminderStyle(note).pattern"
+                  [attr.data-decoration]="getReminderStyle(note).decoration"
+                >
+                  <div class="reminder-card-type">
+                    <i class="fa-regular fa-clock"></i>
+                    <span>Reminder</span>
+                  </div>
+
+                  <div class="reminder-card-body">
+                    @if (note.title) {
+                      <h2>
+                        {{ note.title }}
+                      </h2>
+                    }
+
+                    <p>
+                      {{ getReminderContent(note) }}
+                    </p>
+
+                    @if (note.reminderAt) {
+                      <div class="reminder-card-time">
+                        <i class="fa-regular fa-clock"></i>
+
+                        <span>
+                          {{ note.reminderAt | date: 'MMM d, y · h:mm a' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+
+                  @if (note.tags.length) {
+                    <div class="reminder-card-tags">
+                      @for (tag of note.tags; track tag) {
+                        <span> #{{ tag }} </span>
+                      }
+                    </div>
+                  }
+
+                  <button
+                    type="button"
+                    class="view-note-button"
+                    title="Open this reminder in Notiva"
+                    (click)="viewReminder(note, $event)"
+                  >
+                    <i class="fa-regular fa-eye"></i>
+                    <span>View note</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+              </app-note-design>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="reminder-loading">
+          <i class="fa-solid fa-check"></i>
+          <span>All reminders cleared</span>
+          <small> Press Esc or use the close button to close </small>
+        </div>
+      }
+    </main>
+
+    <footer class="reminder-center-footer">
+      <span> Press Esc to close </span>
+    </footer>
+  </div>
+}
+
+@if (showInAppReminders()) {
+  <div class="browser-reminders">
+    @for (note of reminders(); track note.id) {
+      <article class="browser-reminder-card">
+        @if (getReminderPin(note); as pin) {
+          @if (pin.type !== 'none') {
+            <div class="reminder-card-pin">
+              <app-note-pin [pinId]="note.pinId"></app-note-pin>
+            </div>
+          }
+        }
+
+        <button
+          type="button"
+          class="reminder-card-close"
+          title="Dismiss this reminder"
+          aria-label="Dismiss this reminder"
+          (click)="dismissReminder(note, $event)"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <app-note-design [style]="getReminderStyle(note)">
+          <div class="reminder-card-content">
+            <div class="reminder-card-type">
+              <i class="fa-regular fa-clock"></i>
+              <span>Reminder</span>
+            </div>
+
+            <div class="reminder-card-body">
+              @if (note.title) {
+                <h2>
+                  {{ note.title }}
+                </h2>
+              }
+
+              <p>
+                {{ getReminderContent(note) }}
+              </p>
+
+              @if (note.reminderAt) {
+                <div class="reminder-card-time">
+                  <i class="fa-regular fa-clock"></i>
+
+                  <span>
+                    {{ note.reminderAt | date: 'MMM d, y · h:mm a' }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <button
+              type="button"
+              class="view-note-button"
+              title="View this reminder note"
+              (click)="viewReminder(note, $event)"
+            >
+              <i class="fa-regular fa-eye"></i>
+              <span>View note</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+          </div>
+        </app-note-design>
+      </article>
+    }
   </div>
 }

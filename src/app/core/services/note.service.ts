@@ -9,13 +9,15 @@ import {
   Timestamp,
   writeBatch,
 } from 'firebase/firestore';
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { DEFAULT_NOTE_PIN_ID } from '../constants/note-pins.constant';
-import { firebaseAuth, firestore } from '../firebase/firebase.config';
+import { firebaseAuth, firebaseStorage, firestore } from '../firebase/firebase.config';
 import { DEFAULT_BOARD_ID } from '../models/board.model';
 import {
   CalendarEventModel,
   CalendarModel,
   ChecklistItemModel,
+  NoteAttachmentModel,
   NoteColor,
   NoteModel,
   NoteType,
@@ -130,6 +132,7 @@ export class NoteService {
         type === 'checklist'
           ? [this.createChecklistItem('First item'), this.createChecklistItem('Second item')]
           : [],
+      attachments: [],
       reminderAt: null,
       quoteAuthor: '',
       ideaStatus: 'new',
@@ -264,6 +267,143 @@ export class NoteService {
     };
     this.replaceLocalNote(updated);
     void this.saveNote(updated);
+  }
+
+  addAttachment(noteId: string, attachment: NoteAttachmentModel): void {
+    const note = this.getNoteById(noteId);
+    if (!note) return;
+    const updated: NoteModel = {
+      ...note,
+      attachments: [...note.attachments, attachment],
+      updatedAt: new Date(),
+    };
+    this.replaceLocalNote(updated);
+    void this.saveNote(updated);
+  }
+
+  removeAttachment(noteId: string, attachmentId: string): void {
+    void this.deleteAttachment(noteId, attachmentId);
+  }
+
+  setAttachments(noteId: string, attachments: NoteAttachmentModel[]): void {
+    const note = this.getNoteById(noteId);
+    if (!note) return;
+    const updated: NoteModel = {
+      ...note,
+      attachments,
+      updatedAt: new Date(),
+    };
+    this.replaceLocalNote(updated);
+    void this.saveNote(updated);
+  }
+
+  async uploadAttachments(noteId: string, files: File[]): Promise<NoteAttachmentModel[]> {
+    const note = this.getNoteById(noteId);
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
+    if (!note || !uid || !files.length) return [];
+
+    const uploaded = await this.uploadAttachmentFiles(note, uid, files);
+    if (!uploaded.length) return [];
+
+    const latestNote = this.getNoteById(noteId);
+    if (!latestNote) {
+      await this.deleteUploadedFiles(uploaded);
+      return [];
+    }
+
+    const original = latestNote;
+    const updated: NoteModel = {
+      ...latestNote,
+      attachments: [...latestNote.attachments, ...uploaded],
+      updatedAt: new Date(),
+    };
+
+    this.replaceLocalNote(updated);
+    const saved = await this.saveNote(updated);
+
+    if (!saved) {
+      this.replaceLocalNote(original);
+      await this.deleteUploadedFiles(uploaded);
+      return [];
+    }
+
+    return uploaded;
+  }
+
+  async deleteAttachment(noteId: string, attachmentId: string): Promise<void> {
+    const note = this.getNoteById(noteId);
+    if (!note) return;
+
+    const attachment = note.attachments.find((item) => item.id === attachmentId);
+    if (!attachment) return;
+
+    const updated: NoteModel = {
+      ...note,
+      attachments: note.attachments.filter((item) => item.id !== attachmentId),
+      updatedAt: new Date(),
+    };
+
+    this.replaceLocalNote(updated);
+    const saved = await this.saveNote(updated);
+
+    if (!saved) {
+      this.replaceLocalNote(note);
+      return;
+    }
+
+    await this.deleteStoragePathIfUnused(attachment.storagePath, attachment.name);
+  }
+
+  async syncAttachments(
+    noteId: string,
+    files: File[],
+    removedAttachmentIds: string[],
+  ): Promise<void> {
+    const note = this.getNoteById(noteId);
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
+    if (!note || !uid) return;
+
+    const removedIds = new Set(removedAttachmentIds);
+    const removedAttachments = note.attachments.filter((attachment) =>
+      removedIds.has(attachment.id),
+    );
+
+    const uploaded = files.length ? await this.uploadAttachmentFiles(note, uid, files) : [];
+
+    const latestNote = this.getNoteById(noteId);
+    if (!latestNote) {
+      await this.deleteUploadedFiles(uploaded);
+      return;
+    }
+
+    const original = latestNote;
+    const updated: NoteModel = {
+      ...latestNote,
+      attachments: [
+        ...latestNote.attachments.filter((attachment) => !removedIds.has(attachment.id)),
+        ...uploaded,
+      ],
+      updatedAt: new Date(),
+    };
+
+    this.replaceLocalNote(updated);
+    const saved = await this.saveNote(updated);
+
+    if (!saved) {
+      this.replaceLocalNote(original);
+      await this.deleteUploadedFiles(uploaded);
+      return;
+    }
+
+    const removedPaths = new Map<string, string>();
+    for (const attachment of removedAttachments) {
+      if (!attachment.storagePath) continue;
+      removedPaths.set(attachment.storagePath, attachment.name);
+    }
+
+    for (const [storagePath, name] of removedPaths) {
+      await this.deleteStoragePathIfUnused(storagePath, name);
+    }
   }
 
   archiveNote(id: string): void {
@@ -438,10 +578,12 @@ export class NoteService {
   private async loadCloudNotes(uid: string, migrateLocal: boolean): Promise<void> {
     const boardsSnapshot = await getDocs(collection(firestore, 'users', uid, 'boards'));
     const cloudNotes: NoteModel[] = [];
+
     for (const boardDocument of boardsSnapshot.docs) {
       const notesSnapshot = await getDocs(
         collection(firestore, 'users', uid, 'boards', boardDocument.id, 'notes'),
       );
+
       notesSnapshot.docs.forEach((noteDocument) => {
         cloudNotes.push(
           this.normalizeNote({
@@ -452,6 +594,7 @@ export class NoteService {
         );
       });
     }
+
     if (cloudNotes.length) {
       const migrated = this.migrateStylesInMemory(cloudNotes);
       this.allNotesSignal.set(migrated);
@@ -459,6 +602,7 @@ export class NoteService {
       void this.notificationService.syncReminders(migrated);
       return;
     }
+
     if (migrateLocal) {
       const localNotes = this.loadLocalNotes();
       if (localNotes.length) {
@@ -470,6 +614,7 @@ export class NoteService {
         return;
       }
     }
+
     const defaults = this.getDefaultNotes();
     this.allNotesSignal.set(defaults);
     await this.saveNotes(defaults);
@@ -482,55 +627,158 @@ export class NoteService {
     );
   }
 
-  private async saveNote(note: NoteModel): Promise<void> {
+  private async saveNote(note: NoteModel): Promise<boolean> {
     void this.notificationService.syncReminder(note);
-    const uid = this.currentUid;
-    if (!uid) return;
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
+    if (!uid) return false;
+
     try {
       await setDoc(
         doc(firestore, 'users', uid, 'boards', note.boardId, 'notes', note.id),
         this.toFirestore(note),
       );
+      return true;
     } catch (error) {
       console.error(`Failed to save note "${note.id}".`, error);
+      return false;
     }
   }
 
   private async saveNotes(notes: NoteModel[]): Promise<void> {
-    const uid = this.currentUid;
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
     if (!uid || !notes.length) return;
+
     for (let index = 0; index < notes.length; index += 400) {
       const batch = writeBatch(firestore);
+
       notes.slice(index, index + 400).forEach((note) => {
         batch.set(
           doc(firestore, 'users', uid, 'boards', note.boardId, 'notes', note.id),
           this.toFirestore(note),
         );
       });
+
       await batch.commit();
     }
   }
 
+  private async uploadAttachmentFiles(
+    note: NoteModel,
+    uid: string,
+    files: File[],
+  ): Promise<NoteAttachmentModel[]> {
+    const uploaded: NoteAttachmentModel[] = [];
+
+    for (const file of files) {
+      const attachmentId = crypto.randomUUID();
+      const safeName = this.sanitizeAttachmentName(file.name);
+      const storagePath =
+        `users/${uid}/boards/${note.boardId}/notes/${note.id}/attachments/` +
+        `${attachmentId}/${safeName}`;
+      const storageRef = ref(firebaseStorage, storagePath);
+
+      try {
+        await uploadBytes(storageRef, file, {
+          contentType: file.type || 'application/octet-stream',
+        });
+
+        const url = await getDownloadURL(storageRef);
+
+        uploaded.push({
+          id: attachmentId,
+          name: file.name,
+          type: this.getAttachmentType(file),
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+          url,
+          storagePath,
+          createdAt: new Date(),
+        });
+      } catch (error) {
+        console.error(`Failed to upload attachment "${file.name}".`, error);
+      }
+    }
+
+    return uploaded;
+  }
+
+  private async deleteUploadedFiles(attachments: NoteAttachmentModel[]): Promise<void> {
+    for (const attachment of attachments) {
+      if (!attachment.storagePath) continue;
+
+      try {
+        await deleteObject(ref(firebaseStorage, attachment.storagePath));
+      } catch (error) {
+        console.error(`Failed to clean up attachment "${attachment.name}".`, error);
+      }
+    }
+  }
+
+  private isStoragePathReferenced(storagePath: string): boolean {
+    if (!storagePath) return false;
+
+    return this.allNotesSignal().some((note) =>
+      note.attachments.some((attachment) => attachment.storagePath === storagePath),
+    );
+  }
+
+  private async deleteStoragePathIfUnused(storagePath: string, name: string): Promise<void> {
+    if (!storagePath || this.isStoragePathReferenced(storagePath)) return;
+
+    try {
+      await deleteObject(ref(firebaseStorage, storagePath));
+    } catch (error) {
+      console.error(`Failed to delete attachment "${name}".`, error);
+    }
+  }
+
   private async deleteCloudNote(note: NoteModel): Promise<void> {
-    const uid = this.currentUid;
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
     if (!uid) return;
+
     try {
       await deleteDoc(doc(firestore, 'users', uid, 'boards', note.boardId, 'notes', note.id));
+
+      const paths = new Map<string, string>();
+      for (const attachment of note.attachments) {
+        if (!attachment.storagePath) continue;
+        paths.set(attachment.storagePath, attachment.name);
+      }
+
+      for (const [storagePath, name] of paths) {
+        await this.deleteStoragePathIfUnused(storagePath, name);
+      }
     } catch (error) {
       console.error(`Failed to delete note "${note.id}".`, error);
     }
   }
 
   private async deleteCloudNotes(notes: NoteModel[]): Promise<void> {
-    const uid = this.currentUid;
+    const uid = this.currentUid ?? firebaseAuth.currentUser?.uid ?? null;
     if (!uid || !notes.length) return;
+
     try {
       for (let index = 0; index < notes.length; index += 400) {
         const batch = writeBatch(firestore);
+
         notes.slice(index, index + 400).forEach((note) => {
           batch.delete(doc(firestore, 'users', uid, 'boards', note.boardId, 'notes', note.id));
         });
+
         await batch.commit();
+      }
+
+      const paths = new Map<string, string>();
+
+      for (const note of notes) {
+        for (const attachment of note.attachments) {
+          if (!attachment.storagePath) continue;
+          paths.set(attachment.storagePath, attachment.name);
+        }
+      }
+
+      for (const [storagePath, name] of paths) {
+        await this.deleteStoragePathIfUnused(storagePath, name);
       }
     } catch (error) {
       console.error('Failed to delete notes from Firestore.', error);
@@ -560,6 +808,7 @@ export class NoteService {
               ),
             ];
           }
+
           if (
             item &&
             typeof item === 'object' &&
@@ -568,6 +817,7 @@ export class NoteService {
           ) {
             return [key, this.removeUndefined(item as Record<string, unknown>)];
           }
+
           return [key, item];
         }),
     );
@@ -588,6 +838,11 @@ export class NoteService {
         ...item,
         id: crypto.randomUUID(),
       })),
+      attachments: note.attachments.map((attachment) => ({
+        ...attachment,
+        id: crypto.randomUUID(),
+        createdAt: new Date(),
+      })),
       calendar: note.calendar
         ? {
             ...note.calendar,
@@ -605,6 +860,8 @@ export class NoteService {
   private getSearchableText(note: NoteModel): string {
     const checklistText = note.checklistItems.map((item) => item.text).join(' ');
     const calendarText = note.calendar?.events.map((event) => event.title).join(' ') || '';
+    const attachmentText = note.attachments.map((attachment) => attachment.name).join(' ');
+
     return [
       note.title,
       note.content,
@@ -615,9 +872,66 @@ export class NoteService {
       ...note.tags,
       checklistText,
       calendarText,
+      attachmentText,
     ]
       .join(' ')
       .toLowerCase();
+  }
+
+  private sanitizeAttachmentName(name: string): string {
+    const sanitized = name
+      .normalize('NFKD')
+      .replace(/[^\w.\-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    return sanitized || 'attachment';
+  }
+
+  private getAttachmentType(file: File): NoteAttachmentModel['type'] {
+    const mime = file.type.toLowerCase();
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (mime.startsWith('image/')) return 'image';
+    if (mime === 'application/pdf' || extension === 'pdf') return 'pdf';
+    if (mime.startsWith('video/')) return 'video';
+    if (mime.startsWith('audio/')) return 'audio';
+
+    if (
+      ['doc', 'docx', 'odt', 'rtf'].includes(extension) ||
+      mime.includes('word') ||
+      mime.includes('document')
+    ) {
+      return 'document';
+    }
+
+    if (
+      ['xls', 'xlsx', 'csv', 'ods'].includes(extension) ||
+      mime.includes('spreadsheet') ||
+      mime.includes('excel')
+    ) {
+      return 'spreadsheet';
+    }
+
+    if (
+      ['ppt', 'pptx', 'odp'].includes(extension) ||
+      mime.includes('presentation') ||
+      mime.includes('powerpoint')
+    ) {
+      return 'presentation';
+    }
+
+    if (
+      ['zip', 'rar', '7z', 'tar', 'gz'].includes(extension) ||
+      mime.includes('zip') ||
+      mime.includes('compressed')
+    ) {
+      return 'archive';
+    }
+
+    if (mime.startsWith('text/') || ['txt', 'md'].includes(extension)) return 'text';
+
+    return 'other';
   }
 
   private getDefaultStyleForType(type: NoteType): string {
@@ -656,6 +970,7 @@ export class NoteService {
 
   private createCalendar(): CalendarModel {
     const now = new Date();
+
     return {
       year: now.getFullYear(),
       month: now.getMonth(),
@@ -684,6 +999,7 @@ export class NoteService {
   private loadLocalNotes(): NoteModel[] {
     const stored = localStorage.getItem(this.storageKey);
     if (!stored) return [];
+
     try {
       const parsed = JSON.parse(stored);
       if (!Array.isArray(parsed)) return [];
@@ -696,6 +1012,7 @@ export class NoteService {
   private normalizeDate(value: unknown): Date {
     if (value instanceof Date) return value;
     if (value instanceof Timestamp) return value.toDate();
+
     if (
       value &&
       typeof value === 'object' &&
@@ -704,12 +1021,14 @@ export class NoteService {
     ) {
       return (value as { toDate: () => Date }).toDate();
     }
+
     const date = new Date(value as string | number);
     return Number.isNaN(date.getTime()) ? new Date() : date;
   }
 
   private normalizeNote(note: Partial<NoteModel>): NoteModel {
     const type = note.type || 'text';
+
     const checklistItems = Array.isArray(note.checklistItems)
       ? note.checklistItems.map((item) => ({
           id: item.id || crypto.randomUUID(),
@@ -722,6 +1041,19 @@ export class NoteService {
             .filter(Boolean)
             .map((text) => this.createChecklistItem(text))
         : [];
+
+    const attachments: NoteAttachmentModel[] = Array.isArray(note.attachments)
+      ? note.attachments.map((attachment) => ({
+          id: attachment.id || crypto.randomUUID(),
+          name: attachment.name || 'Attachment',
+          type: attachment.type || 'other',
+          mimeType: attachment.mimeType || 'application/octet-stream',
+          size: typeof attachment.size === 'number' ? attachment.size : 0,
+          url: attachment.url || '',
+          storagePath: attachment.storagePath || '',
+          createdAt: this.normalizeDate(attachment.createdAt),
+        }))
+      : [];
 
     const calendar =
       type === 'calendar'
@@ -771,6 +1103,7 @@ export class NoteService {
       archived: Boolean(note.archived),
       tags: Array.isArray(note.tags) ? note.tags.filter(Boolean) : [],
       checklistItems,
+      attachments,
       reminderAt: note.reminderAt || null,
       quoteAuthor: note.quoteAuthor || '',
       ideaStatus: note.ideaStatus || 'new',
@@ -783,6 +1116,7 @@ export class NoteService {
 
   private getDefaultNotes(): NoteModel[] {
     const now = new Date();
+
     return [
       {
         id: crypto.randomUUID(),
@@ -803,6 +1137,7 @@ export class NoteService {
         archived: false,
         tags: ['welcome'],
         checklistItems: [],
+        attachments: [],
         reminderAt: null,
         quoteAuthor: '',
         ideaStatus: 'new',
@@ -829,6 +1164,7 @@ export class NoteService {
         archived: false,
         tags: ['idea'],
         checklistItems: [],
+        attachments: [],
         reminderAt: null,
         quoteAuthor: '',
         ideaStatus: 'new',
@@ -859,6 +1195,7 @@ export class NoteService {
           this.createChecklistItem('Try another note style'),
           this.createChecklistItem('Move notes around'),
         ],
+        attachments: [],
         reminderAt: null,
         quoteAuthor: '',
         ideaStatus: 'new',
